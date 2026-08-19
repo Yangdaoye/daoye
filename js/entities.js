@@ -13,7 +13,7 @@ const TANK_KINDS = {
     shade: "#c9c3b3",
     track: "#5b5852",
     speed: 1.55,
-    hp: 1,
+    hp: 2,
     cooldown: 280,
     score: 0,
     badge: "师",
@@ -199,8 +199,8 @@ function drawTank(ctx, tank, time) {
   ctx.fillStyle = grd;
   drawRounded(ctx, -tw * 0.3, -th * 0.32, tw * 0.6, th * 0.64, 6);
   ctx.fill();
-  ctx.strokeStyle = "#222";
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = tank.kind === "teacher" ? "#c5a24a" : "#222";
+  ctx.lineWidth = tank.kind === "teacher" ? 2.4 : 2;
   ctx.stroke();
 
   ctx.fillStyle = spec.color;

@@ -8,6 +8,7 @@
     best: document.getElementById("hud-best"),
     lives: document.getElementById("hud-lives"),
     enemies: document.getElementById("hud-enemies"),
+    bell: document.getElementById("hud-bell"),
     power: document.getElementById("hud-power"),
   };
   const BEST_KEY = "school-tank-best";
@@ -54,6 +55,7 @@
     last: 0,
     time: 0,
     baseAlive: true,
+    baseHp: 3,
     best: readBest(),
     grace: 0,
     fireLock: 0,
@@ -93,12 +95,13 @@
     game.particles = [];
     game.floats = [];
     game.enemyLeft = stageEnemyCount(game.stage);
-    game.fieldCap = 4 + (game.stage >= 3 ? 1 : 0);
-    game.spawnTimer = 1800;
+    game.fieldCap = 3 + (game.stage >= 2 ? 1 : 0) + (game.stage >= 4 ? 1 : 0);
+    game.spawnTimer = 2200;
     game.freeze = 0;
-    game.grace = 2200;
+    game.grace = 2600;
     game.fireLock = 280;
     game.baseAlive = true;
+    game.baseHp = 3;
     spawnPlayer();
     game.mode = "playing";
     game.toast = def.name;
@@ -111,11 +114,20 @@
     const def = STAGES[game.stage];
     const power = game.player ? game.player.power : 1;
     const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
-    tank.x = clamp(tank.x, 0, WORLD - tank.w);
-    tank.y = clamp(tank.y, 0, WORLD - tank.h);
     tank.power = power;
     tank.shield = 3600;
+    placeFree(tank);
     game.player = tank;
+  }
+
+  function placeFree(tank) {
+    tank.x = clamp(tank.x, 0, WORLD - tank.w);
+    tank.y = clamp(tank.y, 0, WORLD - tank.h);
+    let guard = 0;
+    while (tankBlocked(tank.bbox(), tank) && guard < 80) {
+      tank.y = clamp(tank.y - 2, 0, WORLD - tank.h);
+      guard += 1;
+    }
   }
 
   function overlappingTiles(box) {
@@ -231,7 +243,16 @@
       return true;
     }
     if (t === TILE_BASE) {
-      destroyBase();
+      game.baseHp -= 1;
+      burst(x * TILE + 12, y * TILE + 12, "#e4c36b", 10);
+      GameAudio.hit();
+      if (game.baseHp <= 0) {
+        destroyBase();
+      } else {
+        game.toast = `校铃告急，还剩 ${game.baseHp} 下`;
+        game.toastTimer = 1400;
+        syncHud();
+      }
       return true;
     }
     if (t === TILE_STEEL || t === TILE_BASE_DEAD) return true;
@@ -301,6 +322,15 @@
   function hurtPlayer() {
     const p = game.player;
     if (!p || !p.alive || p.shield > 0) return;
+    p.hp -= 1;
+    p.flash = 180;
+    if (p.hp > 0) {
+      p.shield = 1400;
+      game.toast = "白色坦克受损，再守一轮";
+      game.toastTimer = 1200;
+      GameAudio.hit();
+      return;
+    }
     burst(p.center().x, p.center().y, "#f6f3ea", 18);
     GameAudio.explode();
     game.lives -= 1;
@@ -326,8 +356,7 @@
     for (const spot of order) {
       const kind = pickEnemyKind(game.stage, game.enemyLeft);
       const tank = new Tank(spot.x, spot.y, kind, "enemy");
-      tank.x = clamp(tank.x, 0, WORLD - tank.w);
-      tank.y = clamp(tank.y, 0, WORLD - tank.h);
+      placeFree(tank);
       if (!tankBlocked(tank.bbox(), tank)) {
         game.enemies.push(tank);
         game.enemyLeft -= 1;
@@ -629,7 +658,17 @@
       ctx.globalAlpha = 1;
     });
 
-    if (game.toastTimer > 0 && game.mode === "playing") {
+    if (game.mode === "playing" && game.grace > 400) {
+      ctx.fillStyle = "rgba(12, 18, 14, 0.45)";
+      ctx.fillRect(0, 230, WORLD, 90);
+      ctx.fillStyle = "#f6f3ea";
+      ctx.textAlign = "center";
+      ctx.font = "bold 48px 'Songti SC', serif";
+      ctx.fillText(String(Math.max(1, Math.ceil(game.grace / 900))), WORLD / 2, 288);
+      ctx.font = "18px 'Songti SC', serif";
+      ctx.fillStyle = "#e4c36b";
+      ctx.fillText(STAGES[game.stage].name, WORLD / 2, 312);
+    } else if (game.toastTimer > 0 && game.mode === "playing") {
       ctx.fillStyle = "rgba(20, 28, 22, 0.55)";
       ctx.fillRect(WORLD / 2 - 180, 16, 360, 36);
       ctx.fillStyle = "#e4c36b";
@@ -687,8 +726,8 @@
       over: "重新开课",
       win: "再教一届",
     };
-    start.textContent = labels[game.mode] || "开始上课";
-    start.disabled = game.mode === "playing";
+    start.textContent = game.mode === "paused" ? "上课中" : labels[game.mode] || "开始上课";
+    start.disabled = game.mode === "playing" || game.mode === "paused";
     pause.textContent = game.mode === "paused" ? "继续上课" : "暂停";
     pause.disabled = game.mode !== "playing" && game.mode !== "paused";
   }
@@ -699,6 +738,7 @@
     hud.score.textContent = String(game.score);
     if (hud.best) hud.best.textContent = String(game.best);
     hud.lives.textContent = String(Math.max(0, game.lives));
+    if (hud.bell) hud.bell.textContent = String(Math.max(0, game.baseHp));
     hud.enemies.textContent = String(game.enemyLeft + game.enemies.length);
     hud.power.textContent = "I".repeat(game.player ? game.player.power : 1);
     syncButtons();
@@ -769,8 +809,7 @@
     game.grid = cloneGrid(STAGES[0].grid);
     const def = STAGES[0];
     const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
-    tank.x = clamp(tank.x, 0, WORLD - tank.w);
-    tank.y = clamp(tank.y, 0, WORLD - tank.h);
+    placeFree(tank);
     game.player = tank;
   }
 

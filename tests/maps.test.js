@@ -6,7 +6,17 @@ function loadMaps() {
   const code = fs.readFileSync(path.join(__dirname, "../js/maps.js"), "utf8");
   const ctx = {};
   vm.createContext(ctx);
-  vm.runInContext(`${code}\nthis.STAGES = STAGES; this.MAP_SIZE = MAP_SIZE; this.TILE = TILE; this.TILE_BASE = TILE_BASE;`, ctx);
+  vm.runInContext(
+    `${code}
+    this.STAGES = STAGES;
+    this.MAP_SIZE = MAP_SIZE;
+    this.TILE = TILE;
+    this.TILE_BASE = TILE_BASE;
+    this.TILE_BRICK = TILE_BRICK;
+    this.TILE_STEEL = TILE_STEEL;
+    this.TILE_WATER = TILE_WATER;`,
+    ctx
+  );
   return ctx;
 }
 
@@ -26,6 +36,17 @@ STAGES.forEach((stage, index) => {
   const bases = stage.grid.flat().filter((t) => t === TILE_BASE).length;
   assert(bases >= 4, `${stage.name} 讲台格子太少：${bases}`);
   assert(stage.playerSpawn.x % TILE === 0, `${stage.name} 出生点未对齐`);
+  const tank = { x: stage.playerSpawn.x, y: stage.playerSpawn.y, w: 44, h: 44 };
+  const x0 = Math.floor(tank.x / TILE);
+  const y0 = Math.floor(tank.y / TILE);
+  const x1 = Math.floor((tank.x + tank.w - 0.01) / TILE);
+  const y1 = Math.floor((tank.y + tank.h - 0.01) / TILE);
+  const blocked = [TILE_BRICK, TILE_STEEL, TILE_WATER, TILE_BASE];
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      assert(!blocked.includes(stage.grid[y][x]), `${stage.name} 老师坦克出生点卡进障碍 (${x},${y})`);
+    }
+  }
   console.log(`ok ${index + 1} ${stage.name} E=${stage.enemySpawns.length} 铃=${bases}`);
 });
 

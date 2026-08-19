@@ -34,6 +34,7 @@ const teacher = new maps.Tank(0, 0, "teacher", "player");
 assert(teacher.kind === "teacher", "老师坦克种类");
 assert(teacher.w >= 40 && teacher.h >= 40, "老师坦克尺寸");
 assert(maps.TANK_KINDS.teacher.badge === "师", "白色坦克代表老师");
+assert(maps.TANK_KINDS.teacher.hp === 2, "老师坦克应能挨一炮");
 assert(maps.TANK_KINDS.rascal.score === 100, "捣蛋生分数");
 assert(maps.TANK_KINDS.boss.hp === 8, "期末大考血量");
 
