@@ -33,24 +33,28 @@
 
 ### 如何补全实拍图片
 
-请将素材拷贝到本仓库后告知继续精修，例如：
+Cloud Agent **无法直接读取** Mac 路径 `/Volumes/YIKE_BACKUP/恒星形成模拟器`。请任选一种方式：
 
-```text
-stellar-formation-defense/
-  assets/
-    photos/
-      website/          # 网站功能截图
-      website-process/  # 网站制作过程
-      wiring/           # 实际接线照片
-      glove/            # 手套制作过程与成品
-      test/             # 测试现场与数据曲线
-    opening/            # 开题答辩 PPT（可选，用于对齐文案）
-```
-
-然后重新运行：
+**方式 A（推荐）：Mac 终端复制到仓库**
 
 ```bash
-python3 scripts/generate_diagrams.py
+cp -R "/Volumes/YIKE_BACKUP/恒星形成模拟器/"* \
+  "/你的项目路径/stellar-formation-defense/assets/source/"
+```
+
+**方式 B：打包后拖入 Cursor 对话**
+
+```bash
+cd "/Volumes/YIKE_BACKUP"
+zip -r ~/Desktop/恒星形成模拟器素材.zip "恒星形成模拟器"
+```
+
+将 zip 拖入本对话，或解压到 `assets/source/` 后 push。
+
+**导入并重新生成：**
+
+```bash
+python3 scripts/ingest_photos.py
 python3 scripts/generate_ppt.py
 ```
 

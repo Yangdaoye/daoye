@@ -12,7 +12,9 @@ from pptx.util import Inches, Pt
 
 ROOT = Path(__file__).resolve().parents[1]
 DIAG = ROOT / "assets" / "diagrams"
+PHOTOS = ROOT / "assets" / "photos"
 OUT = ROOT / "恒星形成模拟器_结题答辩.pptx"
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"}
 
 # Theme
 BG = RGBColor(0x0B, 0x1B, 0x2B)
@@ -144,11 +146,26 @@ def add_bullets(slide, left, top, width, height, items, size=16, color=WHITE):
     return box
 
 
+def photo_pool(category: str) -> list[Path]:
+    folder = PHOTOS / category
+    if not folder.is_dir():
+        return []
+    files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXT]
+    return sorted(files, key=lambda p: p.name.lower())
+
+
+def add_image_or_placeholder(slide, path_or_pool, left, top, width, height, label=""):
+    path = path_or_pool
+    if isinstance(path_or_pool, list):
+        path = path_or_pool.pop(0) if path_or_pool else None
+    if path and Path(path).exists():
+        return slide.shapes.add_picture(str(path), Inches(left), Inches(top), Inches(width), Inches(height))
+    placeholder_card(slide, left, top, width, height, label or (Path(path).name if path else "待插入图片"))
+    return None
+
+
 def add_image_fit(slide, path, left, top, width, height):
-    if not Path(path).exists():
-        placeholder_card(slide, left, top, width, height, Path(path).name)
-        return None
-    return slide.shapes.add_picture(str(path), Inches(left), Inches(top), Inches(width), Inches(height))
+    return add_image_or_placeholder(slide, path, left, top, width, height, Path(path).name if path else "图片")
 
 
 def build():
@@ -157,7 +174,12 @@ def build():
     prs.slide_height = Inches(7.5)
     blank = prs.slide_layouts[6]
 
-    slides_meta = []  # filled as we go; footer applied at end
+    website_shots = photo_pool("website")
+    website_process = photo_pool("website-process")
+    wiring_shots = photo_pool("wiring")
+    glove_shots = photo_pool("glove")
+    test_shots = photo_pool("test")
+
     built = []
 
     def new_slide():
@@ -275,15 +297,15 @@ def build():
         (10.0, "手套控制状态", "实时显示手势指令与映射反馈。"),
     ]
     for left, title, desc in feats:
-        placeholder_card(s, left, 1.35, 2.95, 3.4, title)
+        add_image_or_placeholder(s, website_shots, left, 1.35, 2.95, 3.4, title)
         add_text(s, left, 4.9, 2.95, 1.5, f"{title}\n{desc}", size=12, color=WHITE, align=PP_ALIGN.CENTER)
 
     # ===== 9 More website screenshots =====
     s = new_slide()
     add_title(s, "四、网站主要功能补充截图")
-    placeholder_card(s, 0.55, 1.35, 6.0, 5.2, "功能截图：引力坍缩 / 碎裂过程")
-    placeholder_card(s, 6.8, 1.35, 6.0, 2.4, "功能截图：原恒星与盘结构")
-    placeholder_card(s, 6.8, 4.0, 6.0, 2.55, "功能截图：反馈机制 / 结果对比")
+    add_image_or_placeholder(s, website_shots, 0.55, 1.35, 6.0, 5.2, "功能截图：引力坍缩 / 碎裂过程")
+    add_image_or_placeholder(s, website_shots, 6.8, 1.35, 6.0, 2.4, "功能截图：原恒星与盘结构")
+    add_image_or_placeholder(s, website_shots, 6.8, 4.0, 6.0, 2.55, "功能截图：反馈机制 / 结果对比")
 
     # ===== 10 Website making process =====
     s = new_slide()
@@ -302,7 +324,7 @@ def build():
         "版本迭代对比",
     ]):
         r, c = divmod(i, 3)
-        placeholder_card(s, 0.55 + c * 4.2, 1.35 + r * 2.8, 3.95, 2.5, label)
+        add_image_or_placeholder(s, website_process, 0.55 + c * 4.2, 1.35 + r * 2.8, 3.95, 2.5, label)
 
     # ===== 12 Wiring =====
     s = new_slide()
@@ -312,8 +334,8 @@ def build():
     # ===== 13 Wiring photo placeholder =====
     s = new_slide()
     add_title(s, "六、实际接线与实物对照", "请插入真实接线图 / 面包板 / PCB 照片")
-    placeholder_card(s, 0.55, 1.35, 6.0, 5.2, "实物接线图 / 焊接细节")
-    placeholder_card(s, 6.8, 1.35, 6.0, 5.2, "手套内部走线与模块布局")
+    add_image_or_placeholder(s, wiring_shots, 0.55, 1.35, 6.0, 5.2, "实物接线图 / 焊接细节")
+    add_image_or_placeholder(s, wiring_shots, 6.8, 1.35, 6.0, 5.2, "手套内部走线与模块布局")
 
     # ===== 14 Flowcharts =====
     s = new_slide()
@@ -347,9 +369,7 @@ def build():
     ]
     for i, label in enumerate(labels):
         r, c = divmod(i, 3)
-        placeholder_card(s, 0.55 + c * 4.2, 1.35 + r * 2.8, 3.95, 2.5, label)
-
-    # ===== 17 Glove results =====
+        add_image_or_placeholder(s, glove_shots, 0.55 + c * 4.2, 1.35 + r * 2.8, 3.95, 2.5, label)
     s = new_slide()
     add_title(s, "七、制作结果说明")
     card(s, 0.7, 1.5, 5.9, 4.8, "硬件结果",
@@ -398,9 +418,9 @@ def build():
     # ===== 20 Test photos =====
     s = new_slide()
     add_title(s, "八、测试过程图片")
-    placeholder_card(s, 0.55, 1.35, 6.0, 5.2, "测试现场：佩戴与动作采集")
-    placeholder_card(s, 6.8, 1.35, 6.0, 2.4, "串口 / 数据曲线截图")
-    placeholder_card(s, 6.8, 4.0, 6.0, 2.55, "手势驱动网站画面对比")
+    add_image_or_placeholder(s, test_shots, 0.55, 1.35, 6.0, 5.2, "测试现场：佩戴与动作采集")
+    add_image_or_placeholder(s, test_shots, 6.8, 1.35, 6.0, 2.4, "串口 / 数据曲线截图")
+    add_image_or_placeholder(s, test_shots, 6.8, 4.0, 6.0, 2.55, "手势驱动网站画面对比")
 
     # ===== 21 Summary =====
     s = new_slide()
