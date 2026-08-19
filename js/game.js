@@ -3,11 +3,30 @@
   const ctx = canvas.getContext("2d");
   const hud = {
     stage: document.getElementById("hud-stage"),
+    lesson: document.getElementById("hud-lesson"),
     score: document.getElementById("hud-score"),
+    best: document.getElementById("hud-best"),
     lives: document.getElementById("hud-lives"),
     enemies: document.getElementById("hud-enemies"),
     power: document.getElementById("hud-power"),
   };
+  const BEST_KEY = "school-tank-best";
+
+  function readBest() {
+    try {
+      return Number(localStorage.getItem(BEST_KEY)) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  function writeBest(score) {
+    try {
+      localStorage.setItem(BEST_KEY, String(score));
+    } catch (err) {
+      /* ignore quota / private mode */
+    }
+  }
 
   const WORLD = MAP_SIZE * TILE;
   const PICKUP_KINDS = ["flower", "prize", "bell", "chalk", "tea"];
@@ -35,6 +54,9 @@
     last: 0,
     time: 0,
     baseAlive: true,
+    best: readBest(),
+    grace: 0,
+    fireLock: 0,
   };
 
   function cloneGrid(grid) {
@@ -72,8 +94,10 @@
     game.floats = [];
     game.enemyLeft = stageEnemyCount(game.stage);
     game.fieldCap = 4 + (game.stage >= 3 ? 1 : 0);
-    game.spawnTimer = 400;
+    game.spawnTimer = 1800;
     game.freeze = 0;
+    game.grace = 2200;
+    game.fireLock = 280;
     game.baseAlive = true;
     spawnPlayer();
     game.mode = "playing";
@@ -90,7 +114,7 @@
     tank.x = clamp(tank.x, 0, WORLD - tank.w);
     tank.y = clamp(tank.y, 0, WORLD - tank.h);
     tank.power = power;
-    tank.shield = 2400;
+    tank.shield = 3600;
     game.player = tank;
   }
 
@@ -101,7 +125,9 @@
     const y1 = Math.min(MAP_SIZE - 1, Math.floor((box.y + box.h - 0.01) / TILE));
     const out = [];
     for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) out.push({ x, y, t: game.grid[y][x] });
+      const row = game.grid[y];
+      if (!row) continue;
+      for (let x = x0; x <= x1; x++) out.push({ x, y, t: row[x] });
     }
     return out;
   }
@@ -189,6 +215,7 @@
     game.mode = "over";
     game.toast = "讲台被毁，校园失守";
     game.toastTimer = 2400;
+    rememberBest();
   }
 
   function damageTile(x, y, power) {
@@ -258,10 +285,12 @@
       if (game.stage >= STAGES.length - 1) {
         game.mode = "win";
         game.toast = "圆满下课，校园安宁";
+        rememberBest();
         GameAudio.win();
       } else {
         game.mode = "clear";
         game.toast = "本课结束，准备下一堂";
+        rememberBest();
         GameAudio.win();
       }
       game.toastTimer = 2000;
@@ -280,6 +309,7 @@
       game.mode = "over";
       game.toast = "老师坦克被打回办公室";
       game.toastTimer = 2400;
+      rememberBest();
       GameAudio.lose();
     } else {
       spawnPlayer();
@@ -342,7 +372,7 @@
   function updateEnemy(enemy, dt) {
     enemy.cooldown -= dt;
     enemy.flash = Math.max(0, enemy.flash - dt);
-    if (game.freeze > 0) return;
+    if (game.freeze > 0 || game.grace > 0) return;
     enemy.aiTimer -= dt;
     if (alignedShot(enemy) && enemy.cooldown <= 0) fire(enemy);
     if (enemy.aiTimer <= 0) {
@@ -360,7 +390,7 @@
     const v = DIR_VEC[enemy.dir];
     const moved = tryMove(enemy, v.x * enemy.speed, v.y * enemy.speed);
     if (!moved) enemy.aiTimer = 0;
-    if (enemy.cooldown <= 0 && Math.random() < 0.012 + game.stage * 0.003) fire(enemy);
+    if (enemy.cooldown <= 0 && Math.random() < 0.004 + game.stage * 0.002) fire(enemy);
   }
 
   function updateBullets() {
@@ -427,7 +457,7 @@
     else if (game.keys.ArrowLeft || game.keys.a || game.keys.A) dx = -1;
     else if (game.keys.ArrowRight || game.keys.d || game.keys.D) dx = 1;
     if (dx || dy) tryMove(p, dx * p.speed, dy * p.speed);
-    if (game.keys[" "] || game.keys.j || game.keys.J) fire(p);
+    if (game.fireLock <= 0 && (game.keys[" "] || game.keys.j || game.keys.J)) fire(p);
 
     for (const item of game.pickups) {
       if (item.alive && rectsOverlap(p.bbox(), item)) {
@@ -442,6 +472,8 @@
     game.shake = Math.max(0, game.shake - dt);
     game.toastTimer = Math.max(0, game.toastTimer - dt);
     game.freeze = Math.max(0, game.freeze - dt);
+    game.grace = Math.max(0, game.grace - dt);
+    game.fireLock = Math.max(0, game.fireLock - dt);
     game.pickups.forEach((p) => {
       p.life -= dt;
       if (p.life <= 0) p.alive = false;
@@ -610,7 +642,7 @@
       drawOverlayScreen("校园坦克大战", [
         "白色坦克 = 老师本人",
         "俯视校园，保卫讲台与校铃",
-        "按 Enter 或空格开始上课",
+        "点「开始上课」，或按 Enter / 空格",
       ]);
       ctx.save();
       ctx.translate(WORLD / 2, 160);
@@ -619,23 +651,57 @@
       drawTank(ctx, demo, game.time);
       ctx.restore();
     } else if (game.mode === "paused") {
-      drawOverlayScreen("课间休息", ["按 P 或 Enter 继续"]);
+      drawOverlayScreen("课间休息", ["点「继续上课」或按 Enter"]);
     } else if (game.mode === "clear") {
-      drawOverlayScreen("本课完成", [`得分 ${game.score}`, "按 Enter 进入下一课"]);
+      drawOverlayScreen("本课完成", [`得分 ${game.score}`, `最高 ${game.best}`, "点「下一课」或按 Enter"]);
     } else if (game.mode === "over") {
-      drawOverlayScreen("下课了", [game.toast || "校园需要再守一轮", `得分 ${game.score}`, "按 Enter 重新开课"]);
+      drawOverlayScreen("下课了", [game.toast || "校园需要再守一轮", `得分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」或按 Enter"]);
     } else if (game.mode === "win") {
-      drawOverlayScreen("圆满下课", ["白色老师坦克守住了学校", `总分 ${game.score}`, "按 Enter 再教一届"]);
+      drawOverlayScreen("圆满下课", ["白色老师坦克守住了学校", `总分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」再教一届"]);
     }
     ctx.restore();
   }
 
+  function lessonTitle() {
+    const full = STAGES[game.stage]?.name || "第一课";
+    return full.replace(/^第.+课 · /, "").replace(/^期末大考 · /, "");
+  }
+
+  function rememberBest() {
+    if (game.score > game.best) {
+      game.best = game.score;
+      writeBest(game.best);
+    }
+    syncHud();
+  }
+
+  function syncButtons() {
+    const start = document.getElementById("btn-start");
+    const pause = document.getElementById("btn-pause");
+    if (!start || !pause) return;
+    const labels = {
+      menu: "开始上课",
+      playing: "上课中",
+      paused: "继续上课",
+      clear: "下一课",
+      over: "重新开课",
+      win: "再教一届",
+    };
+    start.textContent = labels[game.mode] || "开始上课";
+    start.disabled = game.mode === "playing";
+    pause.textContent = game.mode === "paused" ? "继续上课" : "暂停";
+    pause.disabled = game.mode !== "playing" && game.mode !== "paused";
+  }
+
   function syncHud() {
     hud.stage.textContent = String(game.stage + 1);
+    if (hud.lesson) hud.lesson.textContent = lessonTitle();
     hud.score.textContent = String(game.score);
+    if (hud.best) hud.best.textContent = String(game.best);
     hud.lives.textContent = String(Math.max(0, game.lives));
     hud.enemies.textContent = String(game.enemyLeft + game.enemies.length);
     hud.power.textContent = "I".repeat(game.player ? game.player.power : 1);
+    syncButtons();
   }
 
   function loop(ts) {
@@ -653,6 +719,13 @@
       game.stage += 1;
       startStage();
     } else if (game.mode === "paused") game.mode = "playing";
+    syncButtons();
+  }
+
+  function togglePause() {
+    if (game.mode === "playing") game.mode = "paused";
+    else if (game.mode === "paused") game.mode = "playing";
+    syncButtons();
   }
 
   window.addEventListener("keydown", (e) => {
@@ -660,14 +733,36 @@
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
     if (e.key === "Enter") beginFromMenu();
     if (e.key === " " && game.mode === "menu") beginFromMenu();
-    if ((e.key === "p" || e.key === "P") && game.mode === "playing") game.mode = "paused";
-    else if ((e.key === "p" || e.key === "P") && game.mode === "paused") game.mode = "playing";
+    if (e.key === "p" || e.key === "P") togglePause();
   });
   window.addEventListener("keyup", (e) => {
     game.keys[e.key] = false;
   });
   canvas.addEventListener("click", () => {
     if (game.mode !== "playing") beginFromMenu();
+  });
+  document.getElementById("btn-start")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    beginFromMenu();
+  });
+  document.getElementById("btn-pause")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    togglePause();
+  });
+  document.querySelectorAll("[data-key]").forEach((btn) => {
+    const key = btn.getAttribute("data-key");
+    const press = (ev) => {
+      ev.preventDefault();
+      game.keys[key] = true;
+    };
+    const release = (ev) => {
+      ev.preventDefault();
+      game.keys[key] = false;
+    };
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointerleave", release);
+    btn.addEventListener("pointercancel", release);
   });
 
   function showMenuPreview() {
