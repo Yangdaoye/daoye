@@ -24,7 +24,7 @@ function assert(cond, message) {
   if (!cond) throw new Error(message);
 }
 
-const { STAGES, MAP_SIZE, TILE, TILE_BASE } = loadMaps();
+const { STAGES, MAP_SIZE, TILE, TILE_BASE, TILE_BRICK, TILE_STEEL, TILE_WATER } = loadMaps();
 
 assert(STAGES.length === 5, `应为 5 堂课，实际 ${STAGES.length}`);
 

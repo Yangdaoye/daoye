@@ -8,6 +8,14 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='%231c2a24' width='64' height='64' rx='10'/><rect x='12' y='22' width='40' height='24' rx='4' fill='%23f4f1ea' stroke='%23222222' stroke-width='3'/><rect x='28' y='10' width='8' height='16' fill='%23f4f1ea' stroke='%23222222' stroke-width='3'/></svg>" />
   </head>
   <body>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        if (q.has("embed") || window.self !== window.top) {
+          document.documentElement.classList.add("embed");
+        }
+      })();
+    </script>
     <div class="app">
       <header class="topbar">
         <div class="brand">
@@ -88,8 +96,16 @@
         </aside>
       </main>
 
+      <section class="embed-help">
+        <h2>夹到其他网站</h2>
+        <p>把下面这段贴进班级博客、黑板报或任何网页，游戏就会嵌在文章中间。</p>
+        <textarea id="embed-snippet" readonly></textarea>
+        <button type="button" id="btn-copy-embed">复制嵌入代码</button>
+        <p>也可以只上传单个文件 <code>school-tank.html</code>，或看示例页 <a href="examples/other-site.html">examples/other-site.html</a>。</p>
+      </section>
+
       <footer>
-        保卫讲台，上好这一课。打开 <code>index.html</code> 即可开玩。
+        保卫讲台，上好这一课。打开 <code>index.html</code> 即可开玩，也可嵌进其他网站。
       </footer>
     </div>
 
@@ -97,5 +113,7 @@
     <script src="js/maps.js"></script>
     <script src="js/entities.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/embed-snippet.js"></script>
   </body>
 </html>
+

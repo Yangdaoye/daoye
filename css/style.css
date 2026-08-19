@@ -295,6 +295,80 @@ footer {
   text-align: center;
 }
 
+html.embed,
+html.embed body {
+  padding: 8px;
+  min-height: 0;
+  background: var(--board-deep);
+}
+
+html.embed .panel,
+html.embed footer,
+html.embed .brand p,
+html.embed .embed-help {
+  display: none;
+}
+
+html.embed .stage {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+html.embed .app,
+html.embed .play,
+html.embed canvas,
+html.embed .topbar {
+  width: min(624px, 100%);
+}
+
+html.embed .topbar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html.embed h1 {
+  font-size: 20px;
+}
+
+.embed-help {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(18, 28, 23, 0.78);
+  border: 1px solid rgba(228, 195, 107, 0.22);
+}
+
+.embed-help h2 {
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.embed-help button {
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(228, 195, 107, 0.35);
+  background: #f3efe4;
+  color: #1a221c;
+  box-shadow: 0 3px 0 #8a8474;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.embed-help textarea {
+  width: 100%;
+  min-height: 92px;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(243, 239, 228, 0.16);
+  background: #101814;
+  color: #e8efe4;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+
 @media (max-width: 980px) {
   .stage {
     grid-template-columns: 1fr;

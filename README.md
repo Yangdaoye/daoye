@@ -43,3 +43,40 @@ node tests/entities.test.js
 5. 期末大考 · 保卫校铃
 
 打掉敌军有概率掉落红花、奖状、下课铃、粉笔盒、保温杯。
+
+## 夹到其他网站
+
+游戏可以嵌进班级博客、黑板报、微信网页或其他站点。
+
+**1. iframe（推荐）**
+
+先把本仓库放到能用浏览器打开的地址，再贴：
+
+```html
+<iframe
+  src="https://你的域名/embed.html"
+  title="校园坦克大战"
+  width="680"
+  height="920"
+  style="border:0;width:100%;max-width:680px;height:920px"
+  allow="autoplay"
+></iframe>
+```
+
+本页打开 `index.html` 后，底部也有一段可直接复制的嵌入代码。
+
+**2. 一行脚本**
+
+```html
+<script src="https://你的域名/js/widget.js" data-width="680" data-height="920"></script>
+```
+
+**3. 单个文件**
+
+```bash
+node scripts/build-standalone.js
+```
+
+生成的 `school-tank.html` 可以单独上传到任何网站，不依赖其他文件。
+
+示例：`examples/other-site.html` 是一个「其他网站」黑板报，中间夹着这局课。
