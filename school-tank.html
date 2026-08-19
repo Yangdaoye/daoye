@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="embed">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园坦克大战</title>
+    <style>
+:root {
+  --ink: #1a221c;
+  --chalk: #e8efe4;
+  --board: #24352c;
+  --board-deep: #16201b;
+  --paper: #f3efe4;
+  --gold: #e4c36b;
+  --white-tank: #f6f3ea;
+  --accent: #c75b3a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 20% 10%, #3a5346 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, #1a2a22 0%, transparent 45%),
+    var(--board-deep);
+  color: var(--chalk);
+  font-family: "Songti SC", "STSong", "SimSun", "Noto Serif SC", Georgia, serif;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px 28px;
+}
+
+.app {
+  width: min(1120px, 100%);
+}
+
+.topbar,
+.panel,
+footer {
+  background: rgba(18, 28, 23, 0.78);
+  border: 1px solid rgba(228, 195, 107, 0.22);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--white-tank);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 26px;
+  box-shadow: inset 0 0 0 3px #2b2b2b, 0 4px 0 #8d8878;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 26px;
+  letter-spacing: 0.08em;
+}
+
+.brand p,
+footer,
+.panel p,
+.panel li {
+  margin: 4px 0 0;
+  color: #c5d2c8;
+  font-size: 14px;
+}
+
+.hud {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(243, 239, 228, 0.08);
+  border: 1px solid rgba(243, 239, 228, 0.12);
+}
+
+.stat span {
+  display: block;
+  font-size: 12px;
+  color: #9aaf9f;
+}
+
+.stat strong {
+  font-size: 22px;
+  color: var(--gold);
+}
+
+.stat.wide {
+  min-width: 132px;
+}
+
+.stat.wide strong {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.stage {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 624px 1fr;
+  gap: 14px;
+}
+
+.play {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 624px;
+}
+
+canvas {
+  display: block;
+  width: 624px;
+  height: 624px;
+  border-radius: 16px;
+  background: #2f4a28;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+  border: 4px solid #d8c38a;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button,
+.fire,
+.pad {
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(228, 195, 107, 0.35);
+  background: #f3efe4;
+  color: #1a221c;
+  box-shadow: 0 3px 0 #8a8474;
+}
+
+.actions button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.actions button:active,
+.pad:active,
+.fire:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+}
+
+.touch {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  user-select: none;
+  touch-action: none;
+}
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.dpad-mid {
+  display: flex;
+  gap: 6px;
+}
+
+.pad,
+.fire {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.fire {
+  width: 92px;
+  height: 92px;
+  border-radius: 46px;
+  background: #c75b3a;
+  color: #fff8ee;
+  box-shadow: 0 3px 0 #7a2f1c;
+}
+
+.panel {
+  border-radius: 16px;
+  padding: 16px 18px 8px;
+}
+
+.panel section {
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+
+.controls,
+.legend {
+  padding-left: 18px;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 1px 6px;
+  margin-right: 3px;
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  box-shadow: 0 2px 0 #8a8474;
+}
+
+.legend {
+  list-style: none;
+  padding-left: 0;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.teacher { background: #f6f3ea; }
+.rascal { background: #f0c419; }
+.late { background: #5dcf7a; }
+.exam { background: #d94b3d; }
+.phone { background: #b56ad4; }
+.brick { background: #c36a3c; }
+.steel { background: #8d97a3; }
+.grass { background: #3f8f46; }
+.water { background: #3a7ca5; }
+
+footer {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+html.embed,
+html.embed body {
+  padding: 8px;
+  min-height: 0;
+  background: var(--board-deep);
+}
+
+html.embed .panel,
+html.embed footer,
+html.embed .brand p,
+html.embed .embed-help {
+  display: none;
+}
+
+html.embed .stage {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+html.embed .app,
+html.embed .play,
+html.embed canvas,
+html.embed .topbar {
+  width: min(624px, 100%);
+}
+
+html.embed .topbar {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html.embed h1 {
+  font-size: 20px;
+}
+
+.embed-help {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(18, 28, 23, 0.78);
+  border: 1px solid rgba(228, 195, 107, 0.22);
+}
+
+.embed-help h2 {
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.embed-help button {
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(228, 195, 107, 0.35);
+  background: #f3efe4;
+  color: #1a221c;
+  box-shadow: 0 3px 0 #8a8474;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.embed-help textarea {
+  width: 100%;
+  min-height: 92px;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(243, 239, 228, 0.16);
+  background: #101814;
+  color: #e8efe4;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+
+@media (max-width: 980px) {
+  .stage {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  canvas,
+  .panel,
+  .topbar,
+  .play {
+    width: min(624px, 100%);
+  }
+
+  canvas {
+    height: auto;
+    aspect-ratio: 1;
+  }
+}
+
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">师</span>
+          <div>
+            <h1>校园坦克大战</h1>
+          </div>
+        </div>
+        <div class="hud" id="hud">
+          <div class="stat"><span>关卡</span><strong id="hud-stage">1</strong></div>
+          <div class="stat wide"><span>课题</span><strong id="hud-lesson">操场集合</strong></div>
+          <div class="stat"><span>分数</span><strong id="hud-score">0</strong></div>
+          <div class="stat"><span>最高</span><strong id="hud-best">0</strong></div>
+          <div class="stat"><span>生命</span><strong id="hud-lives">3</strong></div>
+          <div class="stat"><span>校铃</span><strong id="hud-bell">3</strong></div>
+          <div class="stat"><span>敌军</span><strong id="hud-enemies">20</strong></div>
+          <div class="stat"><span>火力</span><strong id="hud-power">I</strong></div>
+        </div>
+      </header>
+      <main class="stage">
+        <div class="play">
+          <canvas id="game" width="624" height="624" aria-label="校园坦克大战画布"></canvas>
+          <div class="actions">
+            <button type="button" id="btn-start">开始上课</button>
+            <button type="button" id="btn-pause">暂停</button>
+          </div>
+          <div class="touch" id="touch">
+            <div class="dpad" aria-label="方向">
+              <button type="button" class="pad" data-key="ArrowUp">上</button>
+              <div class="dpad-mid">
+                <button type="button" class="pad" data-key="ArrowLeft">左</button>
+                <button type="button" class="pad" data-key="ArrowDown">下</button>
+                <button type="button" class="pad" data-key="ArrowRight">右</button>
+              </div>
+            </div>
+            <button type="button" class="fire" data-key=" ">开炮</button>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script>
+const GameAudio = (() => {
+  let ctx = null;
+  let muted = false;
+
+  function ac() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  function beep(freq, duration, type, gainValue, slide) {
+    if (muted) return;
+    const audio = ac();
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type || "square";
+    osc.frequency.setValueAtTime(freq, audio.currentTime);
+    if (slide) {
+      osc.frequency.exponentialRampToValueAtTime(slide, audio.currentTime + duration);
+    }
+    gain.gain.setValueAtTime(gainValue || 0.05, audio.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audio.destination);
+    osc.start();
+    osc.stop(audio.currentTime + duration);
+  }
+
+  return {
+    unlock() {
+      ac();
+    },
+    shoot() {
+      beep(420, 0.08, "square", 0.04, 180);
+    },
+    explode() {
+      beep(90, 0.28, "sawtooth", 0.07, 40);
+    },
+    hit() {
+      beep(160, 0.07, "triangle", 0.05);
+    },
+    pickup() {
+      beep(520, 0.08, "square", 0.05);
+      setTimeout(() => beep(720, 0.1, "square", 0.04), 70);
+    },
+    start() {
+      beep(260, 0.12, "square", 0.05);
+      setTimeout(() => beep(330, 0.12, "square", 0.05), 100);
+      setTimeout(() => beep(390, 0.18, "square", 0.05), 200);
+    },
+    lose() {
+      beep(220, 0.2, "sawtooth", 0.05, 80);
+    },
+    win() {
+      beep(330, 0.12, "square", 0.05);
+      setTimeout(() => beep(440, 0.16, "square", 0.05), 120);
+    },
+  };
+})();
+
+const TILE = 24;
+const MAP_SIZE = 26;
+
+const TILE_EMPTY = 0;
+const TILE_BRICK = 1;
+const TILE_STEEL = 2;
+const TILE_GRASS = 3;
+const TILE_WATER = 4;
+const TILE_BASE = 5;
+const TILE_BASE_DEAD = 6;
+
+const CHAR_TILE = {
+  ".": TILE_EMPTY,
+  "#": TILE_BRICK,
+  "@": TILE_STEEL,
+  ",": TILE_GRASS,
+  "~": TILE_WATER,
+  B: TILE_BASE,
+  P: TILE_EMPTY,
+  E: TILE_EMPTY,
+};
+
+function normalizeRow(row) {
+  const cells = (row || "").slice(0, MAP_SIZE);
+  return cells.padEnd(MAP_SIZE, ".");
+}
+
+function parseMap(name, subtitle, rows) {
+  const normalized = Array.from({ length: MAP_SIZE }, (_, y) => normalizeRow(rows[y]));
+  const grid = [];
+  const enemySpawns = [];
+  let playerSpawn = { x: 12 * TILE, y: 24 * TILE };
+
+  for (let y = 0; y < MAP_SIZE; y++) {
+    const row = normalized[y];
+    const tiles = [];
+    for (let x = 0; x < MAP_SIZE; x++) {
+      const ch = row[x];
+      tiles.push(CHAR_TILE[ch] ?? TILE_EMPTY);
+      if (ch === "P") playerSpawn = { x: x * TILE, y: y * TILE };
+      if (ch === "E") enemySpawns.push({ x: x * TILE, y: y * TILE });
+    }
+    grid.push(tiles);
+  }
+
+  if (enemySpawns.length === 0) {
+    enemySpawns.push({ x: TILE, y: TILE }, { x: 12 * TILE, y: TILE }, { x: 23 * TILE, y: TILE });
+  }
+
+  return { name, subtitle, grid, playerSpawn, enemySpawns };
+}
+
+const STAGES = [
+  parseMap("第一课 · 操场集合", "保护讲台，先把捣蛋生请出跑道。", [
+    "..........................",
+    ".E........E........E......",
+    "..........................",
+    "....####......####........",
+    "..........................",
+    ",,....................,,..",
+    ",,....................,,..",
+    "..........................",
+    "........@@@@@@@@..........",
+    "..........................",
+    "......##..........##......",
+    "..........................",
+    "..~~..................~~..",
+    "..~~..................~~..",
+    "..........................",
+    "....####..........####....",
+    "..........................",
+    ",,,,,,,,,,,,...,,,,,,,,,,,",
+    "..........................",
+    "...........##.............",
+    "...........P..............",
+    "..........................",
+    ".........######...........",
+    ".........##BB##...........",
+    ".........##BB##...........",
+    ".........@@@@@@...........",
+  ]),
+  parseMap("第二课 · 教学楼走廊", "砖墙课桌之间穿行，别把教室拆光。", [
+    "..........................",
+    "E....@....E....@....E.....",
+    ".....@.........@..........",
+    "##...@...####...@...##....",
+    ".....@.........@..........",
+    ".....@...~~~~...@.........",
+    ".........~~~~.............",
+    "####................####..",
+    "..........................",
+    "..@@@@@@......@@@@@@......",
+    "..........................",
+    "##....##,,,,,,##....##....",
+    "......##,,,,,,##..........",
+    "..........................",
+    "..##......####......##....",
+    "..........................",
+    "@@@@................@@@@..",
+    "..........................",
+    ",,....####....####....,,..",
+    "..........................",
+    "....##..........##........",
+    "...........P..............",
+    "......###....###..........",
+    "......#BB#..#BB#..........",
+    "......#BB#..#BB#..........",
+    "......@@@@..@@@@..........",
+  ]),
+  parseMap("第三课 · 图书馆", "书架如林。试卷铁甲最爱躲在死角。", [
+    "..........................",
+    "E..####..E..####..E..####.",
+    "...####.....###.....###...",
+    "...####.....###.....###...",
+    "..........................",
+    "@@......@@......@@........",
+    "..........................",
+    ".####....,,,,....####.....",
+    ".####....,,,,....####.....",
+    "..........................",
+    "....~~~~~........~~~~~....",
+    "....~~~~~........~~~~~....",
+    "..........................",
+    "####....@@@@@@@@....####..",
+    "..........................",
+    "..##..##......##..##......",
+    "..##..##......##..##......",
+    "..........................",
+    ",,,,,,,,,,....,,,,,,,,,,..",
+    "..........................",
+    "...........P..............",
+    "..........................",
+    ".........###..###.........",
+    ".........#BB##BB#.........",
+    ".........#BB##BB#.........",
+    ".........@@@@@@@@.........",
+  ]),
+  parseMap("第四课 · 实验楼喷泉", "水面不能开过去。手机党会从侧翼包抄。", [
+    "..........................",
+    "E......~~~~~~~.....E......",
+    "......~~~~~~~.............",
+    "E.....................E...",
+    "....##...........##.......",
+    "....##...@@@@@...##.......",
+    "..........................",
+    "~~~~......,,,......~~~~...",
+    "~~~~......,,,......~~~~...",
+    "..........................",
+    "..@@@@............@@@@....",
+    "..........................",
+    "##......########......##..",
+    "........##....##..........",
+    "........##....##..........",
+    "##......########......##..",
+    "..........................",
+    "..~~......@@@@......~~....",
+    "..~~................~~....",
+    ",,......................,,",
+    "...........P..............",
+    "......##........##........",
+    "......##..####..##........",
+    "..........#BB#............",
+    "..........#BB#............",
+    "..........@@@@............",
+  ]),
+  parseMap("期末大考 · 保卫校铃", "最后一课。白色坦克，守住学校。", [
+    "..........................",
+    "E...@...E...@...E...@.....",
+    "....@.......@.......@.....",
+    "##..@..#####@#####..@..##.",
+    "....@.......@.......@.....",
+    "....@@@@@@@@@.......@.....",
+    "..........................",
+    "~~....####,,,,####....~~..",
+    "~~....####,,,,####....~~..",
+    "..........................",
+    "..@@@@@@..........@@@@@@..",
+    "..........................",
+    "####....~~~~~~~~~~....####",
+    "........~~~~~~~~~~........",
+    "..........................",
+    "..##..@@..........@@..##..",
+    "..........................",
+    ",,....##########....,,....",
+    "......##......##..........",
+    "......##..P...##..........",
+    "......##......##..........",
+    "......##########..........",
+    ".........##BB##...........",
+    ".........##BB##...........",
+    ".........@@@@@@...........",
+    "..........................",
+  ]),
+];
+
+const DIR = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3 };
+const DIR_VEC = [
+  { x: 0, y: -1 },
+  { x: 1, y: 0 },
+  { x: 0, y: 1 },
+  { x: -1, y: 0 },
+];
+
+const TANK_KINDS = {
+  teacher: {
+    label: "老师",
+    color: "#f6f3ea",
+    shade: "#c9c3b3",
+    track: "#5b5852",
+    speed: 1.55,
+    hp: 2,
+    cooldown: 280,
+    score: 0,
+    badge: "师",
+  },
+  rascal: {
+    label: "捣蛋生",
+    color: "#f0c419",
+    shade: "#c49a10",
+    track: "#5a4a12",
+    speed: 1.05,
+    hp: 1,
+    cooldown: 900,
+    score: 100,
+    badge: "皮",
+  },
+  late: {
+    label: "迟到王",
+    color: "#5dcf7a",
+    shade: "#2f9a4c",
+    track: "#1f4d2c",
+    speed: 1.85,
+    hp: 1,
+    cooldown: 760,
+    score: 200,
+    badge: "迟",
+  },
+  exam: {
+    label: "试卷铁甲",
+    color: "#d94b3d",
+    shade: "#9a2c23",
+    track: "#4a1c18",
+    speed: 0.85,
+    hp: 3,
+    cooldown: 820,
+    score: 300,
+    badge: "卷",
+  },
+  phone: {
+    label: "手机党",
+    color: "#b56ad4",
+    shade: "#7b3d9a",
+    track: "#3d2150",
+    speed: 1.2,
+    hp: 1,
+    cooldown: 420,
+    score: 250,
+    badge: "机",
+  },
+  boss: {
+    label: "期末大考",
+    color: "#6b2433",
+    shade: "#3d1018",
+    track: "#241016",
+    speed: 1.15,
+    hp: 8,
+    cooldown: 380,
+    score: 1000,
+    badge: "考",
+    scale: 1.15,
+  },
+};
+
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+class Tank {
+  constructor(x, y, kind, team) {
+    const spec = TANK_KINDS[kind];
+    const size = Math.round(44 * (spec.scale || 1));
+    this.x = x;
+    this.y = y;
+    this.w = size;
+    this.h = size;
+    this.kind = kind;
+    this.team = team;
+    this.dir = team === "player" ? DIR.UP : DIR.DOWN;
+    this.speed = spec.speed;
+    this.hp = spec.hp;
+    this.maxHp = spec.hp;
+    this.cooldown = 0;
+    this.fireGap = spec.cooldown;
+    this.power = team === "player" ? 1 : kind === "boss" ? 2 : 1;
+    this.shield = team === "player" ? 2200 : 0;
+    this.alive = true;
+    this.aiTimer = 300 + Math.random() * 800;
+    this.flash = 0;
+  }
+
+  center() {
+    return { x: this.x + this.w / 2, y: this.y + this.h / 2 };
+  }
+
+  bbox() {
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+}
+
+class Bullet {
+  constructor(x, y, dir, team, power) {
+    const v = DIR_VEC[dir];
+    this.x = x - 3;
+    this.y = y - 3;
+    this.w = 6;
+    this.h = 6;
+    this.dir = dir;
+    this.vx = v.x * (3.4 + power * 0.45);
+    this.vy = v.y * (3.4 + power * 0.45);
+    this.team = team;
+    this.power = power;
+    this.alive = true;
+  }
+}
+
+class Pickup {
+  constructor(x, y, kind) {
+    this.x = x;
+    this.y = y;
+    this.w = 22;
+    this.h = 22;
+    this.kind = kind;
+    this.life = 10000;
+    this.alive = true;
+  }
+}
+
+class Particle {
+  constructor(x, y, color) {
+    const ang = Math.random() * Math.PI * 2;
+    const spd = 0.6 + Math.random() * 2.4;
+    this.x = x;
+    this.y = y;
+    this.vx = Math.cos(ang) * spd;
+    this.vy = Math.sin(ang) * spd;
+    this.life = 280 + Math.random() * 280;
+    this.color = color;
+    this.size = 2 + Math.random() * 3;
+  }
+}
+
+function drawRounded(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawTank(ctx, tank, time) {
+  const spec = TANK_KINDS[tank.kind];
+  ctx.save();
+  ctx.translate(tank.x + tank.w / 2, tank.y + tank.h / 2);
+  ctx.rotate((tank.dir * Math.PI) / 2);
+
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(2, 3, tank.w * 0.42, tank.h * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const tw = tank.w;
+  const th = tank.h;
+  ctx.fillStyle = spec.track;
+  drawRounded(ctx, -tw * 0.46, -th * 0.4, tw * 0.18, th * 0.8, 3);
+  ctx.fill();
+  drawRounded(ctx, tw * 0.28, -th * 0.4, tw * 0.18, th * 0.8, 3);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255,255,255,0.18)";
+  for (let i = -3; i <= 3; i++) {
+    ctx.fillRect(-tw * 0.43, i * 5 - 1, tw * 0.12, 2);
+    ctx.fillRect(tw * 0.31, i * 5 - 1, tw * 0.12, 2);
+  }
+
+  const grd = ctx.createLinearGradient(0, -th * 0.3, 0, th * 0.32);
+  grd.addColorStop(0, spec.color);
+  grd.addColorStop(1, spec.shade);
+  ctx.fillStyle = grd;
+  drawRounded(ctx, -tw * 0.3, -th * 0.32, tw * 0.6, th * 0.64, 6);
+  ctx.fill();
+  ctx.strokeStyle = tank.kind === "teacher" ? "#c5a24a" : "#222";
+  ctx.lineWidth = tank.kind === "teacher" ? 2.4 : 2;
+  ctx.stroke();
+
+  ctx.fillStyle = spec.color;
+  drawRounded(ctx, -5, -th * 0.52, 10, th * 0.28, 3);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 2, tw * 0.16, 0, Math.PI * 2);
+  ctx.fillStyle = tank.kind === "teacher" ? "#fffdf7" : spec.color;
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = tank.kind === "teacher" ? "#c75b3a" : "#1b1b1b";
+  ctx.font = `bold ${Math.round(tw * 0.22)}px "Songti SC", serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(spec.badge, 0, 3);
+
+  if (tank.shield > 0) {
+    ctx.strokeStyle = `rgba(255,230,120,${0.45 + Math.sin(time / 80) * 0.25})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, tw * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (tank.flash > 0) {
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    drawRounded(ctx, -tw * 0.3, -th * 0.32, tw * 0.6, th * 0.64, 6);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawBullet(ctx, bullet) {
+  ctx.save();
+  ctx.fillStyle = bullet.team === "player" ? "#fff6d2" : "#ffb4a2";
+  ctx.shadowColor = bullet.team === "player" ? "#ffe08a" : "#ff6b4a";
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(bullet.x + 3, bullet.y + 3, bullet.power > 1 ? 4 : 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPickup(ctx, item, time) {
+  const bounce = Math.sin(time / 180) * 2;
+  ctx.save();
+  ctx.translate(item.x + 11, item.y + 11 + bounce);
+  ctx.fillStyle = "#f4e7bf";
+  drawRounded(ctx, -11, -11, 22, 22, 5);
+  ctx.fill();
+  ctx.strokeStyle = "#7a5b20";
+  ctx.stroke();
+  ctx.fillStyle = "#8a2c1a";
+  ctx.font = "bold 12px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const mark = { flower: "花", prize: "状", bell: "铃", chalk: "粉", tea: "杯" }[item.kind];
+  ctx.fillText(mark, 0, 1);
+  ctx.restore();
+}
+
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const hud = {
+    stage: document.getElementById("hud-stage"),
+    lesson: document.getElementById("hud-lesson"),
+    score: document.getElementById("hud-score"),
+    best: document.getElementById("hud-best"),
+    lives: document.getElementById("hud-lives"),
+    enemies: document.getElementById("hud-enemies"),
+    bell: document.getElementById("hud-bell"),
+    power: document.getElementById("hud-power"),
+  };
+  const BEST_KEY = "school-tank-best";
+
+  function readBest() {
+    try {
+      return Number(localStorage.getItem(BEST_KEY)) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  function writeBest(score) {
+    try {
+      localStorage.setItem(BEST_KEY, String(score));
+    } catch (err) {
+      /* ignore quota / private mode */
+    }
+  }
+
+  const WORLD = MAP_SIZE * TILE;
+  const PICKUP_KINDS = ["flower", "prize", "bell", "chalk", "tea"];
+
+  const game = {
+    mode: "menu",
+    stage: 0,
+    score: 0,
+    lives: 3,
+    grid: [],
+    player: null,
+    enemies: [],
+    bullets: [],
+    pickups: [],
+    particles: [],
+    floats: [],
+    enemyLeft: 20,
+    fieldCap: 4,
+    spawnTimer: 0,
+    freeze: 0,
+    shake: 0,
+    toast: "",
+    toastTimer: 0,
+    keys: {},
+    last: 0,
+    time: 0,
+    baseAlive: true,
+    baseHp: 3,
+    best: readBest(),
+    grace: 0,
+    fireLock: 0,
+  };
+
+  function cloneGrid(grid) {
+    return grid.map((row) => row.slice());
+  }
+
+  function stageEnemyCount(stage) {
+    return 16 + stage * 3;
+  }
+
+  function pickEnemyKind(stage, remaining) {
+    if (stage === 4 && remaining === 1) return "boss";
+    const roll = Math.random();
+    if (stage === 0) return roll < 0.8 ? "rascal" : "late";
+    if (stage === 1) return roll < 0.5 ? "rascal" : roll < 0.8 ? "late" : "exam";
+    if (stage === 2) return roll < 0.3 ? "rascal" : roll < 0.55 ? "late" : roll < 0.8 ? "exam" : "phone";
+    if (stage === 3) return roll < 0.2 ? "rascal" : roll < 0.45 ? "late" : roll < 0.7 ? "exam" : "phone";
+    return roll < 0.15 ? "rascal" : roll < 0.4 ? "late" : roll < 0.7 ? "exam" : "phone";
+  }
+
+  function resetRun() {
+    game.stage = 0;
+    game.score = 0;
+    game.lives = 3;
+    startStage();
+  }
+
+  function startStage() {
+    const def = STAGES[game.stage];
+    game.grid = cloneGrid(def.grid);
+    game.enemies = [];
+    game.bullets = [];
+    game.pickups = [];
+    game.particles = [];
+    game.floats = [];
+    game.enemyLeft = stageEnemyCount(game.stage);
+    game.fieldCap = 3 + (game.stage >= 2 ? 1 : 0) + (game.stage >= 4 ? 1 : 0);
+    game.spawnTimer = 2200;
+    game.freeze = 0;
+    game.grace = 2600;
+    game.fireLock = 280;
+    game.baseAlive = true;
+    game.baseHp = 3;
+    spawnPlayer();
+    game.mode = "playing";
+    game.toast = def.name;
+    game.toastTimer = 1800;
+    GameAudio.start();
+    syncHud();
+  }
+
+  function spawnPlayer() {
+    const def = STAGES[game.stage];
+    const power = game.player ? game.player.power : 1;
+    const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
+    tank.power = power;
+    tank.shield = 3600;
+    placeFree(tank);
+    game.player = tank;
+  }
+
+  function placeFree(tank) {
+    tank.x = clamp(tank.x, 0, WORLD - tank.w);
+    tank.y = clamp(tank.y, 0, WORLD - tank.h);
+    let guard = 0;
+    while (tankBlocked(tank.bbox(), tank) && guard < 80) {
+      tank.y = clamp(tank.y - 2, 0, WORLD - tank.h);
+      guard += 1;
+    }
+  }
+
+  function overlappingTiles(box) {
+    const x0 = Math.max(0, Math.floor(box.x / TILE));
+    const y0 = Math.max(0, Math.floor(box.y / TILE));
+    const x1 = Math.min(MAP_SIZE - 1, Math.floor((box.x + box.w - 0.01) / TILE));
+    const y1 = Math.min(MAP_SIZE - 1, Math.floor((box.y + box.h - 0.01) / TILE));
+    const out = [];
+    for (let y = y0; y <= y1; y++) {
+      const row = game.grid[y];
+      if (!row) continue;
+      for (let x = x0; x <= x1; x++) out.push({ x, y, t: row[x] });
+    }
+    return out;
+  }
+
+  function tankBlocked(box, ignore) {
+    if (box.x < 0 || box.y < 0 || box.x + box.w > WORLD || box.y + box.h > WORLD) return true;
+    for (const cell of overlappingTiles(box)) {
+      if (
+        cell.t === TILE_BRICK ||
+        cell.t === TILE_STEEL ||
+        cell.t === TILE_WATER ||
+        cell.t === TILE_BASE ||
+        cell.t === TILE_BASE_DEAD
+      ) {
+        return true;
+      }
+    }
+    const bodies = [game.player, ...game.enemies].filter((t) => t && t.alive && t !== ignore);
+    return bodies.some((t) => rectsOverlap(box, t.bbox()));
+  }
+
+  function tryMove(tank, dx, dy) {
+    if (dx !== 0) tank.dir = dx > 0 ? DIR.RIGHT : DIR.LEFT;
+    if (dy !== 0) tank.dir = dy > 0 ? DIR.DOWN : DIR.UP;
+    const next = { x: tank.x + dx, y: tank.y + dy, w: tank.w, h: tank.h };
+    if (!tankBlocked(next, tank)) {
+      tank.x = next.x;
+      tank.y = next.y;
+      return true;
+    }
+    if (dx !== 0) {
+      const slide = { x: tank.x + dx, y: tank.y, w: tank.w, h: tank.h };
+      if (!tankBlocked(slide, tank)) {
+        tank.x = slide.x;
+        return true;
+      }
+    }
+    if (dy !== 0) {
+      const slide = { x: tank.x, y: tank.y + dy, w: tank.w, h: tank.h };
+      if (!tankBlocked(slide, tank)) {
+        tank.y = slide.y;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function burst(x, y, color, n = 14) {
+    for (let i = 0; i < n; i++) game.particles.push(new Particle(x, y, color));
+    game.shake = Math.max(game.shake, 220);
+  }
+
+  function floatText(x, y, text) {
+    game.floats.push({ x, y, text, life: 800 });
+  }
+
+  function playerBulletCount() {
+    return game.bullets.filter((b) => b.team === "player" && b.alive).length;
+  }
+
+  function fire(tank) {
+    if (!tank.alive || tank.cooldown > 0) return;
+    const cap = tank.team === "player" ? (tank.power >= 2 ? 3 : 2) : 1;
+    const current = game.bullets.filter((b) => b.team === tank.team && b.alive).length;
+    if (tank.team === "player" && playerBulletCount() >= cap) return;
+    if (tank.team === "enemy" && current >= game.enemies.length) return;
+    const c = tank.center();
+    const v = DIR_VEC[tank.dir];
+    const bullet = new Bullet(c.x + v.x * (tank.h * 0.42), c.y + v.y * (tank.h * 0.42), tank.dir, tank.team, tank.power);
+    game.bullets.push(bullet);
+    tank.cooldown = tank.fireGap / (tank.team === "player" ? Math.max(1, 0.75 + tank.power * 0.15) : 1);
+    if (tank.team === "player") GameAudio.shoot();
+  }
+
+  function destroyBase() {
+    if (!game.baseAlive) return;
+    game.baseAlive = false;
+    for (let y = 0; y < MAP_SIZE; y++) {
+      for (let x = 0; x < MAP_SIZE; x++) {
+        if (game.grid[y][x] === TILE_BASE) game.grid[y][x] = TILE_BASE_DEAD;
+      }
+    }
+    burst(WORLD / 2, WORLD - 48, "#c75b3a", 28);
+    GameAudio.explode();
+    game.mode = "over";
+    game.toast = "讲台被毁，校园失守";
+    game.toastTimer = 2400;
+    rememberBest();
+  }
+
+  function damageTile(x, y, power) {
+    const t = game.grid[y][x];
+    if (t === TILE_BRICK) {
+      game.grid[y][x] = TILE_EMPTY;
+      burst(x * TILE + 12, y * TILE + 12, "#d27a48", 7);
+      return true;
+    }
+    if (t === TILE_STEEL && power >= 3) {
+      game.grid[y][x] = TILE_EMPTY;
+      burst(x * TILE + 12, y * TILE + 12, "#b8c0c8", 7);
+      return true;
+    }
+    if (t === TILE_BASE) {
+      game.baseHp -= 1;
+      burst(x * TILE + 12, y * TILE + 12, "#e4c36b", 10);
+      GameAudio.hit();
+      if (game.baseHp <= 0) {
+        destroyBase();
+      } else {
+        game.toast = `校铃告急，还剩 ${game.baseHp} 下`;
+        game.toastTimer = 1400;
+        syncHud();
+      }
+      return true;
+    }
+    if (t === TILE_STEEL || t === TILE_BASE_DEAD) return true;
+    return false;
+  }
+
+  function spawnPickup(x, y) {
+    if (Math.random() > 0.26) return;
+    const kind = PICKUP_KINDS[Math.floor(Math.random() * PICKUP_KINDS.length)];
+    game.pickups.push(new Pickup(x - 11, y - 11, kind));
+  }
+
+  function applyPickup(kind) {
+    const p = game.player;
+    if (kind === "flower") {
+      p.power = Math.min(3, p.power + 1);
+      game.toast = p.power >= 3 ? "红花开满，钢墙也可击穿" : "红花：火力升级";
+    } else if (kind === "prize") {
+      p.shield = 6000;
+      game.toast = "奖状护体，暂时无敌";
+    } else if (kind === "bell") {
+      game.freeze = 5000;
+      game.toast = "下课铃响，敌军冻结";
+    } else if (kind === "chalk") {
+      game.enemies.forEach((e) => {
+        e.alive = false;
+        game.score += TANK_KINDS[e.kind].score;
+        burst(e.center().x, e.center().y, TANK_KINDS[e.kind].color, 16);
+      });
+      game.enemies = [];
+      game.toast = "粉笔盒：一黑板擦干净";
+    } else if (kind === "tea") {
+      game.lives += 1;
+      game.toast = "保温杯：额外生命";
+    }
+    game.toastTimer = 1600;
+    GameAudio.pickup();
+    syncHud();
+  }
+
+  function killEnemy(enemy) {
+    enemy.alive = false;
+    game.score += TANK_KINDS[enemy.kind].score;
+    const c = enemy.center();
+    burst(c.x, c.y, TANK_KINDS[enemy.kind].color, 18);
+    floatText(c.x, c.y, `+${TANK_KINDS[enemy.kind].score}`);
+    spawnPickup(c.x, c.y);
+    GameAudio.explode();
+    game.enemies = game.enemies.filter((e) => e.alive);
+    if (game.enemyLeft <= 0 && game.enemies.length === 0) {
+      if (game.stage >= STAGES.length - 1) {
+        game.mode = "win";
+        game.toast = "圆满下课，校园安宁";
+        rememberBest();
+        GameAudio.win();
+      } else {
+        game.mode = "clear";
+        game.toast = "本课结束，准备下一堂";
+        rememberBest();
+        GameAudio.win();
+      }
+      game.toastTimer = 2000;
+    }
+    syncHud();
+  }
+
+  function hurtPlayer() {
+    const p = game.player;
+    if (!p || !p.alive || p.shield > 0) return;
+    p.hp -= 1;
+    p.flash = 180;
+    if (p.hp > 0) {
+      p.shield = 1400;
+      game.toast = "白色坦克受损，再守一轮";
+      game.toastTimer = 1200;
+      GameAudio.hit();
+      return;
+    }
+    burst(p.center().x, p.center().y, "#f6f3ea", 18);
+    GameAudio.explode();
+    game.lives -= 1;
+    if (game.lives <= 0) {
+      p.alive = false;
+      game.mode = "over";
+      game.toast = "老师坦克被打回办公室";
+      game.toastTimer = 2400;
+      rememberBest();
+      GameAudio.lose();
+    } else {
+      spawnPlayer();
+      game.toast = "再上一遍这课";
+      game.toastTimer = 1200;
+    }
+    syncHud();
+  }
+
+  function spawnEnemy() {
+    if (game.enemyLeft <= 0 || game.enemies.length >= game.fieldCap) return;
+    const spots = STAGES[game.stage].enemySpawns;
+    const order = spots.slice().sort(() => Math.random() - 0.5);
+    for (const spot of order) {
+      const kind = pickEnemyKind(game.stage, game.enemyLeft);
+      const tank = new Tank(spot.x, spot.y, kind, "enemy");
+      placeFree(tank);
+      if (!tankBlocked(tank.bbox(), tank)) {
+        game.enemies.push(tank);
+        game.enemyLeft -= 1;
+        game.spawnTimer = 1800 - game.stage * 120;
+        syncHud();
+        return;
+      }
+    }
+    game.spawnTimer = 400;
+  }
+
+  function alignedShot(enemy) {
+    if (!game.player || !game.player.alive) return false;
+    const a = enemy.center();
+    const b = game.player.center();
+    const near = 16;
+    if (Math.abs(a.x - b.x) <= near) {
+      enemy.dir = b.y > a.y ? DIR.DOWN : DIR.UP;
+      return clearLine(a, b, true);
+    }
+    if (Math.abs(a.y - b.y) <= near) {
+      enemy.dir = b.x > a.x ? DIR.RIGHT : DIR.LEFT;
+      return clearLine(a, b, false);
+    }
+    return false;
+  }
+
+  function clearLine(a, b, vertical) {
+    const minX = Math.floor(Math.min(a.x, b.x) / TILE);
+    const maxX = Math.floor(Math.max(a.x, b.x) / TILE);
+    const minY = Math.floor(Math.min(a.y, b.y) / TILE);
+    const maxY = Math.floor(Math.max(a.y, b.y) / TILE);
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const t = game.grid[y]?.[x];
+        if (t === TILE_BRICK || t === TILE_STEEL || t === TILE_BASE) return false;
+      }
+    }
+    return true;
+  }
+
+  function updateEnemy(enemy, dt) {
+    enemy.cooldown -= dt;
+    enemy.flash = Math.max(0, enemy.flash - dt);
+    if (game.freeze > 0 || game.grace > 0) return;
+    enemy.aiTimer -= dt;
+    if (alignedShot(enemy) && enemy.cooldown <= 0) fire(enemy);
+    if (enemy.aiTimer <= 0) {
+      if (game.player && Math.random() < 0.45) {
+        const p = game.player.center();
+        const c = enemy.center();
+        enemy.dir = Math.abs(p.x - c.x) > Math.abs(p.y - c.y)
+          ? (p.x > c.x ? DIR.RIGHT : DIR.LEFT)
+          : (p.y > c.y ? DIR.DOWN : DIR.UP);
+      } else {
+        enemy.dir = Math.floor(Math.random() * 4);
+      }
+      enemy.aiTimer = 380 + Math.random() * 900;
+    }
+    const v = DIR_VEC[enemy.dir];
+    const moved = tryMove(enemy, v.x * enemy.speed, v.y * enemy.speed);
+    if (!moved) enemy.aiTimer = 0;
+    if (enemy.cooldown <= 0 && Math.random() < 0.004 + game.stage * 0.002) fire(enemy);
+  }
+
+  function updateBullets() {
+    for (const bullet of game.bullets) {
+      if (!bullet.alive) continue;
+      bullet.x += bullet.vx;
+      bullet.y += bullet.vy;
+      if (bullet.x < -8 || bullet.y < -8 || bullet.x > WORLD + 8 || bullet.y > WORLD + 8) {
+        bullet.alive = false;
+        continue;
+      }
+      let blocked = false;
+      for (const cell of overlappingTiles(bullet)) {
+        if (damageTile(cell.x, cell.y, bullet.power)) {
+          blocked = true;
+          if (cell.t === TILE_BRICK || (cell.t === TILE_STEEL && bullet.power >= 3)) GameAudio.hit();
+        }
+      }
+      if (blocked) {
+        bullet.alive = false;
+        continue;
+      }
+
+      if (bullet.team === "player") {
+        for (const enemy of game.enemies) {
+          if (enemy.alive && rectsOverlap(bullet, enemy.bbox())) {
+            bullet.alive = false;
+            enemy.hp -= 1;
+            enemy.flash = 120;
+            GameAudio.hit();
+            if (enemy.hp <= 0) killEnemy(enemy);
+            break;
+          }
+        }
+      } else if (game.player && game.player.alive && rectsOverlap(bullet, game.player.bbox())) {
+        bullet.alive = false;
+        hurtPlayer();
+      }
+    }
+
+    for (let i = 0; i < game.bullets.length; i++) {
+      for (let j = i + 1; j < game.bullets.length; j++) {
+        const a = game.bullets[i];
+        const b = game.bullets[j];
+        if (a.alive && b.alive && a.team !== b.team && rectsOverlap(a, b)) {
+          a.alive = false;
+          b.alive = false;
+        }
+      }
+    }
+    game.bullets = game.bullets.filter((b) => b.alive);
+  }
+
+  function updatePlayer(dt) {
+    const p = game.player;
+    if (!p || !p.alive) return;
+    p.cooldown -= dt;
+    p.shield = Math.max(0, p.shield - dt);
+    p.flash = Math.max(0, p.flash - dt);
+    let dx = 0;
+    let dy = 0;
+    if (game.keys.ArrowUp || game.keys.w || game.keys.W) dy = -1;
+    else if (game.keys.ArrowDown || game.keys.s || game.keys.S) dy = 1;
+    else if (game.keys.ArrowLeft || game.keys.a || game.keys.A) dx = -1;
+    else if (game.keys.ArrowRight || game.keys.d || game.keys.D) dx = 1;
+    if (dx || dy) tryMove(p, dx * p.speed, dy * p.speed);
+    if (game.fireLock <= 0 && (game.keys[" "] || game.keys.j || game.keys.J)) fire(p);
+
+    for (const item of game.pickups) {
+      if (item.alive && rectsOverlap(p.bbox(), item)) {
+        item.alive = false;
+        applyPickup(item.kind);
+      }
+    }
+  }
+
+  function update(dt) {
+    game.time += dt;
+    game.shake = Math.max(0, game.shake - dt);
+    game.toastTimer = Math.max(0, game.toastTimer - dt);
+    game.freeze = Math.max(0, game.freeze - dt);
+    game.grace = Math.max(0, game.grace - dt);
+    game.fireLock = Math.max(0, game.fireLock - dt);
+    game.pickups.forEach((p) => {
+      p.life -= dt;
+      if (p.life <= 0) p.alive = false;
+    });
+    game.pickups = game.pickups.filter((p) => p.alive);
+    game.particles.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= dt;
+    });
+    game.particles = game.particles.filter((p) => p.life > 0);
+    game.floats.forEach((f) => {
+      f.y -= 0.03 * dt;
+      f.life -= dt;
+    });
+    game.floats = game.floats.filter((f) => f.life > 0);
+
+    if (game.mode !== "playing") return;
+    updatePlayer(dt);
+    game.enemies.forEach((e) => updateEnemy(e, dt));
+    updateBullets();
+    game.spawnTimer -= dt;
+    if (game.spawnTimer <= 0) spawnEnemy();
+  }
+
+  function drawGround() {
+    for (let y = 0; y < MAP_SIZE; y++) {
+      for (let x = 0; x < MAP_SIZE; x++) {
+        ctx.fillStyle = (x + y) % 2 === 0 ? "#5f8a46" : "#567e40";
+        ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+      }
+    }
+  }
+
+  function drawBrick(x, y) {
+    ctx.fillStyle = "#b85a32";
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.fillStyle = "#d27a48";
+    ctx.fillRect(x + 1, y + 1, TILE - 2, 10);
+    ctx.fillRect(x + 1, y + 13, 10, 10);
+    ctx.fillRect(x + 13, y + 13, 10, 10);
+    ctx.strokeStyle = "#7a351c";
+    ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+  }
+
+  function drawSteel(x, y) {
+    ctx.fillStyle = "#8d97a3";
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.fillStyle = "#c5ccd3";
+    ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+    ctx.fillStyle = "#5d656e";
+    [[5, 5], [TILE - 8, 5], [5, TILE - 8], [TILE - 8, TILE - 8]].forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.arc(x + px, y + py, 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  function drawWater(x, y) {
+    ctx.fillStyle = "#2f6f93";
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.strokeStyle = "rgba(190,230,255,0.45)";
+    ctx.beginPath();
+    ctx.moveTo(x, y + 8 + Math.sin(game.time / 180 + x) * 2);
+    ctx.lineTo(x + TILE, y + 10 + Math.sin(game.time / 160 + y) * 2);
+    ctx.moveTo(x, y + 16 + Math.cos(game.time / 200 + y) * 2);
+    ctx.lineTo(x + TILE, y + 14 + Math.cos(game.time / 190 + x) * 2);
+    ctx.stroke();
+  }
+
+  function drawGrass(x, y) {
+    ctx.fillStyle = "rgba(46, 122, 52, 0.82)";
+    ctx.fillRect(x, y, TILE, TILE);
+    ctx.fillStyle = "rgba(164, 214, 96, 0.8)";
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(x + 3 + (i * 3) % 18, y + 4 + ((i * 7) % 16), 2, 7);
+    }
+  }
+
+  function drawBase(x, y, dead) {
+    ctx.fillStyle = dead ? "#3b2a24" : "#f3efe4";
+    ctx.fillRect(x + 2, y + 4, TILE - 4, TILE - 6);
+    ctx.fillStyle = dead ? "#5a2a22" : "#c75b3a";
+    ctx.fillRect(x + 4, y + 2, TILE - 8, 8);
+    ctx.fillStyle = dead ? "#777" : "#e4c36b";
+    ctx.beginPath();
+    ctx.arc(x + TILE / 2, y + 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#222";
+    ctx.font = "bold 10px serif";
+    ctx.textAlign = "center";
+    ctx.fillText(dead ? "破" : "铃", x + TILE / 2, y + TILE - 5);
+  }
+
+  function drawTiles(layer) {
+    if (!game.grid[0]) return;
+    for (let y = 0; y < MAP_SIZE; y++) {
+      const row = game.grid[y];
+      if (!row) continue;
+      for (let x = 0; x < MAP_SIZE; x++) {
+        const t = row[x];
+        const px = x * TILE;
+        const py = y * TILE;
+        if (layer === "base") {
+          if (t === TILE_BRICK) drawBrick(px, py);
+          else if (t === TILE_STEEL) drawSteel(px, py);
+          else if (t === TILE_WATER) drawWater(px, py);
+          else if (t === TILE_BASE) drawBase(px, py, false);
+          else if (t === TILE_BASE_DEAD) drawBase(px, py, true);
+        } else if (t === TILE_GRASS) {
+          drawGrass(px, py);
+        }
+      }
+    }
+  }
+
+  function drawOverlayScreen(title, lines) {
+    ctx.fillStyle = "rgba(12, 18, 14, 0.72)";
+    ctx.fillRect(0, 0, WORLD, WORLD);
+    ctx.fillStyle = "#f6f3ea";
+    ctx.textAlign = "center";
+    ctx.font = "bold 42px 'Songti SC', serif";
+    ctx.fillText(title, WORLD / 2, 250);
+    ctx.font = "18px 'Songti SC', serif";
+    ctx.fillStyle = "#d7e3d4";
+    lines.forEach((line, i) => ctx.fillText(line, WORLD / 2, 300 + i * 28));
+  }
+
+  function draw() {
+    ctx.save();
+    if (game.shake > 0) {
+      ctx.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+    }
+    drawGround();
+    drawTiles("base");
+    game.pickups.forEach((p) => drawPickup(ctx, p, game.time));
+    if (game.player && game.player.alive) drawTank(ctx, game.player, game.time);
+    game.enemies.forEach((e) => drawTank(ctx, e, game.time));
+    game.bullets.forEach((b) => drawBullet(ctx, b));
+    drawTiles("grass");
+    game.particles.forEach((p) => {
+      ctx.globalAlpha = Math.max(0, p.life / 400);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.globalAlpha = 1;
+    });
+    game.floats.forEach((f) => {
+      ctx.globalAlpha = Math.max(0, f.life / 800);
+      ctx.fillStyle = "#fff4c4";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.globalAlpha = 1;
+    });
+
+    if (game.mode === "playing" && game.grace > 400) {
+      ctx.fillStyle = "rgba(12, 18, 14, 0.45)";
+      ctx.fillRect(0, 230, WORLD, 90);
+      ctx.fillStyle = "#f6f3ea";
+      ctx.textAlign = "center";
+      ctx.font = "bold 48px 'Songti SC', serif";
+      ctx.fillText(String(Math.max(1, Math.ceil(game.grace / 900))), WORLD / 2, 288);
+      ctx.font = "18px 'Songti SC', serif";
+      ctx.fillStyle = "#e4c36b";
+      ctx.fillText(STAGES[game.stage].name, WORLD / 2, 312);
+    } else if (game.toastTimer > 0 && game.mode === "playing") {
+      ctx.fillStyle = "rgba(20, 28, 22, 0.55)";
+      ctx.fillRect(WORLD / 2 - 180, 16, 360, 36);
+      ctx.fillStyle = "#e4c36b";
+      ctx.font = "bold 18px 'Songti SC', serif";
+      ctx.textAlign = "center";
+      ctx.fillText(game.toast, WORLD / 2, 40);
+    }
+
+    if (game.mode === "menu") {
+      drawOverlayScreen("校园坦克大战", [
+        "白色坦克 = 老师本人",
+        "俯视校园，保卫讲台与校铃",
+        "点「开始上课」，或按 Enter / 空格",
+      ]);
+      ctx.save();
+      ctx.translate(WORLD / 2, 160);
+      const demo = new Tank(-22, -22, "teacher", "player");
+      demo.dir = DIR.UP;
+      drawTank(ctx, demo, game.time);
+      ctx.restore();
+    } else if (game.mode === "paused") {
+      drawOverlayScreen("课间休息", ["点「继续上课」或按 Enter"]);
+    } else if (game.mode === "clear") {
+      drawOverlayScreen("本课完成", [`得分 ${game.score}`, `最高 ${game.best}`, "点「下一课」或按 Enter"]);
+    } else if (game.mode === "over") {
+      drawOverlayScreen("下课了", [game.toast || "校园需要再守一轮", `得分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」或按 Enter"]);
+    } else if (game.mode === "win") {
+      drawOverlayScreen("圆满下课", ["白色老师坦克守住了学校", `总分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」再教一届"]);
+    }
+    ctx.restore();
+  }
+
+  function lessonTitle() {
+    const full = STAGES[game.stage]?.name || "第一课";
+    return full.replace(/^第.+课 · /, "").replace(/^期末大考 · /, "");
+  }
+
+  function rememberBest() {
+    if (game.score > game.best) {
+      game.best = game.score;
+      writeBest(game.best);
+    }
+    syncHud();
+  }
+
+  function syncButtons() {
+    const start = document.getElementById("btn-start");
+    const pause = document.getElementById("btn-pause");
+    if (!start || !pause) return;
+    const labels = {
+      menu: "开始上课",
+      playing: "上课中",
+      paused: "继续上课",
+      clear: "下一课",
+      over: "重新开课",
+      win: "再教一届",
+    };
+    start.textContent = game.mode === "paused" ? "上课中" : labels[game.mode] || "开始上课";
+    start.disabled = game.mode === "playing" || game.mode === "paused";
+    pause.textContent = game.mode === "paused" ? "继续上课" : "暂停";
+    pause.disabled = game.mode !== "playing" && game.mode !== "paused";
+  }
+
+  function syncHud() {
+    hud.stage.textContent = String(game.stage + 1);
+    if (hud.lesson) hud.lesson.textContent = lessonTitle();
+    hud.score.textContent = String(game.score);
+    if (hud.best) hud.best.textContent = String(game.best);
+    hud.lives.textContent = String(Math.max(0, game.lives));
+    if (hud.bell) hud.bell.textContent = String(Math.max(0, game.baseHp));
+    hud.enemies.textContent = String(game.enemyLeft + game.enemies.length);
+    hud.power.textContent = "I".repeat(game.player ? game.player.power : 1);
+    syncButtons();
+  }
+
+  function loop(ts) {
+    const dt = game.last ? Math.min(34, ts - game.last) : 16;
+    game.last = ts;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function beginFromMenu() {
+    GameAudio.unlock();
+    if (game.mode === "menu" || game.mode === "over" || game.mode === "win") resetRun();
+    else if (game.mode === "clear") {
+      game.stage += 1;
+      startStage();
+    } else if (game.mode === "paused") game.mode = "playing";
+    syncButtons();
+  }
+
+  function togglePause() {
+    if (game.mode === "playing") game.mode = "paused";
+    else if (game.mode === "paused") game.mode = "playing";
+    syncButtons();
+  }
+
+  window.addEventListener("keydown", (e) => {
+    game.keys[e.key] = true;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
+    if (e.key === "Enter") beginFromMenu();
+    if (e.key === " " && game.mode === "menu") beginFromMenu();
+    if (e.key === "p" || e.key === "P") togglePause();
+  });
+  window.addEventListener("keyup", (e) => {
+    game.keys[e.key] = false;
+  });
+  canvas.addEventListener("click", () => {
+    if (game.mode !== "playing") beginFromMenu();
+  });
+  document.getElementById("btn-start")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    beginFromMenu();
+  });
+  document.getElementById("btn-pause")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    togglePause();
+  });
+  document.querySelectorAll("[data-key]").forEach((btn) => {
+    const key = btn.getAttribute("data-key");
+    const press = (ev) => {
+      ev.preventDefault();
+      game.keys[key] = true;
+    };
+    const release = (ev) => {
+      ev.preventDefault();
+      game.keys[key] = false;
+    };
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("pointerup", release);
+    btn.addEventListener("pointerleave", release);
+    btn.addEventListener("pointercancel", release);
+  });
+
+  function showMenuPreview() {
+    game.grid = cloneGrid(STAGES[0].grid);
+    const def = STAGES[0];
+    const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
+    placeFree(tank);
+    game.player = tank;
+  }
+
+  showMenuPreview();
+  syncHud();
+  requestAnimationFrame(loop);
+})();
+
+    </script>
+  </body>
+</html>

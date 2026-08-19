@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园坦克大战 · 白色老师坦克</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='%231c2a24' width='64' height='64' rx='10'/><rect x='12' y='22' width='40' height='24' rx='4' fill='%23f4f1ea' stroke='%23222222' stroke-width='3'/><rect x='28' y='10' width='8' height='16' fill='%23f4f1ea' stroke='%23222222' stroke-width='3'/></svg>" />
+  </head>
+  <body>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        if (q.has("embed") || window.self !== window.top) {
+          document.documentElement.classList.add("embed");
+        }
+      })();
+    </script>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">师</span>
+          <div>
+            <h1>校园坦克大战</h1>
+            <p>俯视视角 · 白色坦克即老师本人</p>
+          </div>
+        </div>
+        <div class="hud" id="hud">
+          <div class="stat"><span>关卡</span><strong id="hud-stage">1</strong></div>
+          <div class="stat wide"><span>课题</span><strong id="hud-lesson">操场集合</strong></div>
+          <div class="stat"><span>分数</span><strong id="hud-score">0</strong></div>
+          <div class="stat"><span>最高</span><strong id="hud-best">0</strong></div>
+          <div class="stat"><span>生命</span><strong id="hud-lives">3</strong></div>
+          <div class="stat"><span>校铃</span><strong id="hud-bell">3</strong></div>
+          <div class="stat"><span>敌军</span><strong id="hud-enemies">20</strong></div>
+          <div class="stat"><span>火力</span><strong id="hud-power">I</strong></div>
+        </div>
+      </header>
+
+      <main class="stage">
+        <div class="play">
+          <canvas id="game" width="624" height="624" aria-label="校园坦克大战画布"></canvas>
+          <div class="actions">
+            <button type="button" id="btn-start">开始上课</button>
+            <button type="button" id="btn-pause">暂停</button>
+          </div>
+          <div class="touch" id="touch">
+            <div class="dpad" aria-label="方向">
+              <button type="button" class="pad" data-key="ArrowUp">上</button>
+              <div class="dpad-mid">
+                <button type="button" class="pad" data-key="ArrowLeft">左</button>
+                <button type="button" class="pad" data-key="ArrowDown">下</button>
+                <button type="button" class="pad" data-key="ArrowRight">右</button>
+              </div>
+            </div>
+            <button type="button" class="fire" data-key=" ">开炮</button>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <section>
+            <h2>白色老师坦克</h2>
+            <p>你是校园里的白色坦克，代表老师自己。保护讲台与校铃，把捣蛋、迟到、手机党和期末大考赶出操场。</p>
+          </section>
+          <section>
+            <h2>操作</h2>
+            <ul class="controls">
+              <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 或方向键移动</li>
+              <li><kbd>空格</kbd> / <kbd>J</kbd> 开炮</li>
+              <li><kbd>P</kbd> 暂停　<kbd>Enter</kbd> 开始 / 继续</li>
+              <li>也可点「开始上课」，手机用下方方向键</li>
+            </ul>
+          </section>
+          <section>
+            <h2>校园图例</h2>
+            <ul class="legend">
+              <li><i class="swatch teacher"></i>老师 · 白色坦克</li>
+              <li><i class="swatch rascal"></i>捣蛋生</li>
+              <li><i class="swatch late"></i>迟到王</li>
+              <li><i class="swatch exam"></i>试卷铁甲</li>
+              <li><i class="swatch phone"></i>手机党</li>
+              <li><i class="swatch brick"></i>课桌砖墙　<i class="swatch steel"></i>教学楼钢墙</li>
+              <li><i class="swatch grass"></i>操场草地　<i class="swatch water"></i>喷泉</li>
+            </ul>
+          </section>
+          <section>
+            <h2>校园道具</h2>
+            <ul class="legend">
+              <li>红花：升级炮管</li>
+              <li>奖状：短暂无敌</li>
+              <li>下课铃：冻结敌军</li>
+              <li>粉笔盒：清场一波</li>
+              <li>保温杯：额外生命</li>
+            </ul>
+          </section>
+        </aside>
+      </main>
+
+      <section class="embed-help">
+        <h2>夹到其他网站</h2>
+        <p>把下面这段贴进班级博客、黑板报或任何网页，游戏就会嵌在文章中间。</p>
+        <textarea id="embed-snippet" readonly></textarea>
+        <button type="button" id="btn-copy-embed">复制嵌入代码</button>
+        <p>也可以只上传单个文件 <code>school-tank.html</code>，或看示例页 <a href="examples/other-site.html">examples/other-site.html</a>。</p>
+      </section>
+
+      <footer>
+        保卫讲台，上好这一课。打开 <code>index.html</code> 即可开玩，也可嵌进其他网站。
+      </footer>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/maps.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/embed-snippet.js"></script>
+  </body>
+</html>
+
