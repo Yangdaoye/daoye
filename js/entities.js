@@ -12,9 +12,9 @@ const TANK_KINDS = {
     color: "#f6f3ea",
     shade: "#c9c3b3",
     track: "#5b5852",
-    speed: 1.55,
-    hp: 2,
-    cooldown: 280,
+    speed: 1.72,
+    hp: 3,
+    cooldown: 260,
     score: 0,
     badge: "师",
   },
@@ -74,7 +74,75 @@ const TANK_KINDS = {
     badge: "考",
     scale: 1.15,
   },
+  monitor: {
+    label: "课代表",
+    color: "#4a90d9",
+    shade: "#245a96",
+    track: "#1a3554",
+    speed: 1.12,
+    hp: 2,
+    cooldown: 720,
+    score: 220,
+    badge: "代",
+  },
+  duty: {
+    label: "值日生",
+    color: "#e67e22",
+    shade: "#a35412",
+    track: "#5a3010",
+    speed: 1.35,
+    hp: 2,
+    cooldown: 540,
+    score: 280,
+    badge: "值",
+  },
+  director: {
+    label: "年级主任",
+    color: "#1e6b4a",
+    shade: "#0f3d2b",
+    track: "#0a2419",
+    speed: 1.05,
+    hp: 5,
+    cooldown: 460,
+    score: 600,
+    badge: "主",
+    scale: 1.08,
+  },
 };
+
+const ENEMY_UNLOCKS = [
+  { from: 0, kind: "rascal" },
+  { from: 1, kind: "late" },
+  { from: 2, kind: "monitor" },
+  { from: 3, kind: "exam" },
+  { from: 4, kind: "phone" },
+  { from: 5, kind: "duty" },
+  { from: 6, kind: "director" },
+  { from: 7, kind: "boss" },
+];
+
+const PICKUP_UNLOCKS = [
+  { from: 0, kind: "flower" },
+  { from: 1, kind: "prize" },
+  { from: 2, kind: "ruler" },
+  { from: 3, kind: "bell" },
+  { from: 4, kind: "ink" },
+  { from: 5, kind: "tea" },
+  { from: 6, kind: "chalk" },
+  { from: 7, kind: "mega" },
+];
+
+const WEAPON_LABELS = {
+  chalk: "粉笔炮",
+  rapid: "红花连射",
+  spread: "直尺散射",
+  pierce: "墨水穿甲",
+  boom: "扩音炮",
+};
+
+function unlockedKinds(stage, table) {
+  return table.filter((row) => stage >= row.from).map((row) => row.kind);
+}
 
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -100,7 +168,9 @@ class Tank {
     this.maxHp = spec.hp;
     this.cooldown = 0;
     this.fireGap = spec.cooldown;
-    this.power = team === "player" ? 1 : kind === "boss" ? 2 : 1;
+    this.power = team === "player" ? 1 : kind === "boss" || kind === "director" ? 2 : 1;
+    this.weapon = team === "player" ? "chalk" : "chalk";
+    this.pierce = 0;
     this.shield = team === "player" ? 2200 : 0;
     this.alive = true;
     this.aiTimer = 300 + Math.random() * 800;
@@ -128,6 +198,7 @@ class Bullet {
     this.vy = v.y * (3.4 + power * 0.45);
     this.team = team;
     this.power = power;
+    this.pierce = 0;
     this.alive = true;
   }
 }
@@ -239,7 +310,7 @@ function drawTank(ctx, tank, time) {
 
 function drawBullet(ctx, bullet) {
   ctx.save();
-  ctx.fillStyle = bullet.team === "player" ? "#fff6d2" : "#ffb4a2";
+  ctx.fillStyle = bullet.team === "player" ? (bullet.pierce ? "#9ad7ff" : "#fff6d2") : "#ffb4a2";
   ctx.shadowColor = bullet.team === "player" ? "#ffe08a" : "#ff6b4a";
   ctx.shadowBlur = 8;
   ctx.beginPath();
@@ -261,7 +332,7 @@ function drawPickup(ctx, item, time) {
   ctx.font = "bold 12px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const mark = { flower: "花", prize: "状", bell: "铃", chalk: "粉", tea: "杯" }[item.kind];
+  const mark = { flower: "花", prize: "状", bell: "铃", chalk: "粉", tea: "杯", ruler: "尺", ink: "墨", mega: "音" }[item.kind];
   ctx.fillText(mark, 0, 1);
   ctx.restore();
 }

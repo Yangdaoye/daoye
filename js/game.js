@@ -10,8 +10,11 @@
     enemies: document.getElementById("hud-enemies"),
     bell: document.getElementById("hud-bell"),
     power: document.getElementById("hud-power"),
+    cleared: document.getElementById("hud-cleared"),
+    weapon: document.getElementById("hud-weapon"),
   };
   const BEST_KEY = "school-tank-best";
+  const CLEAR_KEY = "school-tank-clears";
 
   function readBest() {
     try {
@@ -29,14 +32,34 @@
     }
   }
 
-  const WORLD = MAP_SIZE * TILE;
-  const PICKUP_KINDS = ["flower", "prize", "bell", "chalk", "tea"];
+  function readClears() {
+    try {
+      return Number(localStorage.getItem(CLEAR_KEY)) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
 
+  function writeClears(n) {
+    try {
+      localStorage.setItem(CLEAR_KEY, String(n));
+    } catch (err) {
+      /* ignore */
+    }
+  }
+
+  function currentMap() {
+    return STAGES[game.stage % STAGES.length];
+  }
+
+  const WORLD = MAP_SIZE * TILE;
   const game = {
     mode: "menu",
     stage: 0,
+    cleared: 0,
+    bestClears: readClears(),
     score: 0,
-    lives: 3,
+    lives: 5,
     grid: [],
     player: null,
     enemies: [],
@@ -66,28 +89,29 @@
   }
 
   function stageEnemyCount(stage) {
-    return 16 + stage * 3;
+    return Math.min(22, 8 + stage * 2);
   }
 
   function pickEnemyKind(stage, remaining) {
-    if (stage === 4 && remaining === 1) return "boss";
-    const roll = Math.random();
-    if (stage === 0) return roll < 0.8 ? "rascal" : "late";
-    if (stage === 1) return roll < 0.5 ? "rascal" : roll < 0.8 ? "late" : "exam";
-    if (stage === 2) return roll < 0.3 ? "rascal" : roll < 0.55 ? "late" : roll < 0.8 ? "exam" : "phone";
-    if (stage === 3) return roll < 0.2 ? "rascal" : roll < 0.45 ? "late" : roll < 0.7 ? "exam" : "phone";
-    return roll < 0.15 ? "rascal" : roll < 0.4 ? "late" : roll < 0.7 ? "exam" : "phone";
+    const pool = unlockedKinds(stage, ENEMY_UNLOCKS);
+    if (stage >= 7 && remaining === 1 && pool.includes("boss")) return "boss";
+    return pool[Math.floor(Math.random() * pool.length)] || "rascal";
   }
 
   function resetRun() {
     game.stage = 0;
+    game.cleared = 0;
     game.score = 0;
-    game.lives = 3;
+    game.lives = 5;
+    if (game.player) {
+      game.player.power = 1;
+      game.player.weapon = "chalk";
+    }
     startStage();
   }
 
   function startStage() {
-    const def = STAGES[game.stage];
+    const def = currentMap();
     game.grid = cloneGrid(def.grid);
     game.enemies = [];
     game.bullets = [];
@@ -95,27 +119,29 @@
     game.particles = [];
     game.floats = [];
     game.enemyLeft = stageEnemyCount(game.stage);
-    game.fieldCap = 3 + (game.stage >= 2 ? 1 : 0) + (game.stage >= 4 ? 1 : 0);
-    game.spawnTimer = 2200;
+    game.fieldCap = Math.min(6, 2 + Math.floor(game.stage / 2));
+    game.spawnTimer = Math.max(900, 2800 - game.stage * 160);
     game.freeze = 0;
-    game.grace = 2600;
+    game.grace = Math.max(900, 3800 - game.stage * 200);
     game.fireLock = 280;
     game.baseAlive = true;
-    game.baseHp = 3;
+    game.baseHp = game.stage < 2 ? 5 : game.stage < 5 ? 4 : 3;
     spawnPlayer();
     game.mode = "playing";
-    game.toast = def.name;
+    game.toast = `${def.name} · 第 ${game.stage + 1} 关`;
     game.toastTimer = 1800;
     GameAudio.start();
     syncHud();
   }
 
   function spawnPlayer() {
-    const def = STAGES[game.stage];
+    const def = currentMap();
     const power = game.player ? game.player.power : 1;
+    const weapon = game.player ? game.player.weapon : "chalk";
     const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
     tank.power = power;
-    tank.shield = 3600;
+    tank.weapon = weapon || "chalk";
+    tank.shield = 4200;
     placeFree(tank);
     game.player = tank;
   }
@@ -200,17 +226,38 @@
     return game.bullets.filter((b) => b.team === "player" && b.alive).length;
   }
 
+  function makeBullet(x, y, dir, team, power, pierce) {
+    const bullet = new Bullet(x, y, dir, team, power);
+    bullet.pierce = pierce || 0;
+    if (team === "enemy") {
+      const slow = Math.max(0.55, 0.62 + game.stage * 0.05);
+      bullet.vx *= slow;
+      bullet.vy *= slow;
+    }
+    return bullet;
+  }
+
   function fire(tank) {
     if (!tank.alive || tank.cooldown > 0) return;
-    const cap = tank.team === "player" ? (tank.power >= 2 ? 3 : 2) : 1;
+    const weapon = tank.team === "player" ? tank.weapon || "chalk" : "chalk";
+    const cap = tank.team === "player" ? (weapon === "spread" || weapon === "boom" ? 6 : tank.power >= 2 ? 3 : 2) : 1;
     const current = game.bullets.filter((b) => b.team === tank.team && b.alive).length;
     if (tank.team === "player" && playerBulletCount() >= cap) return;
     if (tank.team === "enemy" && current >= game.enemies.length) return;
     const c = tank.center();
     const v = DIR_VEC[tank.dir];
-    const bullet = new Bullet(c.x + v.x * (tank.h * 0.42), c.y + v.y * (tank.h * 0.42), tank.dir, tank.team, tank.power);
-    game.bullets.push(bullet);
-    tank.cooldown = tank.fireGap / (tank.team === "player" ? Math.max(1, 0.75 + tank.power * 0.15) : 1);
+    const ox = c.x + v.x * (tank.h * 0.42);
+    const oy = c.y + v.y * (tank.h * 0.42);
+    const power = weapon === "boom" ? Math.max(tank.power, 2) : tank.power;
+    const pierce = weapon === "pierce" ? 2 : 0;
+    game.bullets.push(makeBullet(ox, oy, tank.dir, tank.team, power, pierce));
+    if (tank.team === "player" && weapon === "spread") {
+      const side = { x: -v.y, y: v.x };
+      game.bullets.push(makeBullet(ox + side.x * 8, oy + side.y * 8, tank.dir, tank.team, power, 0));
+      game.bullets.push(makeBullet(ox - side.x * 8, oy - side.y * 8, tank.dir, tank.team, power, 0));
+    }
+    const gapBoost = weapon === "rapid" ? 1.55 : weapon === "boom" ? 0.75 : 1;
+    tank.cooldown = tank.fireGap / ((tank.team === "player" ? Math.max(1, 0.75 + tank.power * 0.15) : 1) * gapBoost);
     if (tank.team === "player") GameAudio.shoot();
   }
 
@@ -260,8 +307,11 @@
   }
 
   function spawnPickup(x, y) {
-    if (Math.random() > 0.26) return;
-    const kind = PICKUP_KINDS[Math.floor(Math.random() * PICKUP_KINDS.length)];
+    const chance = game.stage < 2 ? 0.48 : 0.32;
+    if (Math.random() > chance) return;
+    const pool = unlockedKinds(game.stage, PICKUP_UNLOCKS);
+    const kind = pool[Math.floor(Math.random() * pool.length)];
+    if (!kind) return;
     game.pickups.push(new Pickup(x - 11, y - 11, kind));
   }
 
@@ -269,7 +319,8 @@
     const p = game.player;
     if (kind === "flower") {
       p.power = Math.min(3, p.power + 1);
-      game.toast = p.power >= 3 ? "红花开满，钢墙也可击穿" : "红花：火力升级";
+      if (p.weapon === "chalk") p.weapon = "rapid";
+      game.toast = p.power >= 3 ? "红花连射：钢墙也可击穿" : "红花：换成连射炮";
     } else if (kind === "prize") {
       p.shield = 6000;
       game.toast = "奖状护体，暂时无敌";
@@ -284,9 +335,21 @@
       });
       game.enemies = [];
       game.toast = "粉笔盒：一黑板擦干净";
+      if (game.enemyLeft <= 0) finishWave();
     } else if (kind === "tea") {
       game.lives += 1;
       game.toast = "保温杯：额外生命";
+    } else if (kind === "ruler") {
+      p.weapon = "spread";
+      game.toast = "新武器：直尺散射";
+    } else if (kind === "ink") {
+      p.weapon = "pierce";
+      p.power = Math.max(p.power, 2);
+      game.toast = "新武器：墨水穿甲";
+    } else if (kind === "mega") {
+      p.weapon = "boom";
+      p.power = Math.max(p.power, 2);
+      game.toast = "新武器：扩音炮";
     }
     game.toastTimer = 1600;
     GameAudio.pickup();
@@ -302,21 +365,18 @@
     spawnPickup(c.x, c.y);
     GameAudio.explode();
     game.enemies = game.enemies.filter((e) => e.alive);
-    if (game.enemyLeft <= 0 && game.enemies.length === 0) {
-      if (game.stage >= STAGES.length - 1) {
-        game.mode = "win";
-        game.toast = "圆满下课，校园安宁";
-        rememberBest();
-        GameAudio.win();
-      } else {
-        game.mode = "clear";
-        game.toast = "本课结束，准备下一堂";
-        rememberBest();
-        GameAudio.win();
-      }
-      game.toastTimer = 2000;
-    }
+    if (game.enemyLeft <= 0 && game.enemies.length === 0) finishWave();
     syncHud();
+  }
+
+  function finishWave() {
+    if (game.mode !== "playing") return;
+    game.cleared += 1;
+    game.mode = "clear";
+    game.toast = `本课结束，已过关 ${game.cleared} 堂`;
+    rememberBest();
+    GameAudio.win();
+    game.toastTimer = 2000;
   }
 
   function hurtPlayer() {
@@ -351,16 +411,18 @@
 
   function spawnEnemy() {
     if (game.enemyLeft <= 0 || game.enemies.length >= game.fieldCap) return;
-    const spots = STAGES[game.stage].enemySpawns;
+    const spots = currentMap().enemySpawns;
     const order = spots.slice().sort(() => Math.random() - 0.5);
     for (const spot of order) {
       const kind = pickEnemyKind(game.stage, game.enemyLeft);
       const tank = new Tank(spot.x, spot.y, kind, "enemy");
+      tank.speed *= 0.68 + game.stage * 0.055;
+      tank.fireGap *= Math.max(0.72, 1.55 - game.stage * 0.07);
       placeFree(tank);
       if (!tankBlocked(tank.bbox(), tank)) {
         game.enemies.push(tank);
         game.enemyLeft -= 1;
-        game.spawnTimer = 1800 - game.stage * 120;
+        game.spawnTimer = Math.max(700, 2400 - game.stage * 140);
         syncHud();
         return;
       }
@@ -403,7 +465,7 @@
     enemy.flash = Math.max(0, enemy.flash - dt);
     if (game.freeze > 0 || game.grace > 0) return;
     enemy.aiTimer -= dt;
-    if (alignedShot(enemy) && enemy.cooldown <= 0) fire(enemy);
+    if (alignedShot(enemy) && enemy.cooldown <= 0 && Math.random() < 0.22 + game.stage * 0.07) fire(enemy);
     if (enemy.aiTimer <= 0) {
       if (game.player && Math.random() < 0.45) {
         const p = game.player.center();
@@ -419,7 +481,7 @@
     const v = DIR_VEC[enemy.dir];
     const moved = tryMove(enemy, v.x * enemy.speed, v.y * enemy.speed);
     if (!moved) enemy.aiTimer = 0;
-    if (enemy.cooldown <= 0 && Math.random() < 0.004 + game.stage * 0.002) fire(enemy);
+    if (enemy.cooldown <= 0 && Math.random() < 0.0018 + game.stage * 0.0012) fire(enemy);
   }
 
   function updateBullets() {
@@ -446,12 +508,13 @@
       if (bullet.team === "player") {
         for (const enemy of game.enemies) {
           if (enemy.alive && rectsOverlap(bullet, enemy.bbox())) {
-            bullet.alive = false;
+            if (bullet.pierce > 0) bullet.pierce -= 1;
+            else bullet.alive = false;
             enemy.hp -= 1;
             enemy.flash = 120;
             GameAudio.hit();
             if (enemy.hp <= 0) killEnemy(enemy);
-            break;
+            if (!bullet.alive) break;
           }
         }
       } else if (game.player && game.player.alive && rectsOverlap(bullet, game.player.bbox())) {
@@ -667,7 +730,7 @@
       ctx.fillText(String(Math.max(1, Math.ceil(game.grace / 900))), WORLD / 2, 288);
       ctx.font = "18px 'Songti SC', serif";
       ctx.fillStyle = "#e4c36b";
-      ctx.fillText(STAGES[game.stage].name, WORLD / 2, 312);
+      ctx.fillText(`${currentMap().name} · 已过关 ${game.cleared}`, WORLD / 2, 312);
     } else if (game.toastTimer > 0 && game.mode === "playing") {
       ctx.fillStyle = "rgba(20, 28, 22, 0.55)";
       ctx.fillRect(WORLD / 2 - 180, 16, 360, 36);
@@ -681,6 +744,7 @@
       drawOverlayScreen("校园坦克大战", [
         "白色坦克 = 老师本人",
         "俯视校园，保卫讲台与校铃",
+        "前几关很简单，越往后人物和武器越多",
         "点「开始上课」，或按 Enter / 空格",
       ]);
       ctx.save();
@@ -692,17 +756,17 @@
     } else if (game.mode === "paused") {
       drawOverlayScreen("课间休息", ["点「继续上课」或按 Enter"]);
     } else if (game.mode === "clear") {
-      drawOverlayScreen("本课完成", [`得分 ${game.score}`, `最高 ${game.best}`, "点「下一课」或按 Enter"]);
+      drawOverlayScreen("本课完成", [`已过关 ${game.cleared} 堂`, `得分 ${game.score}`, `历史最多过关 ${game.bestClears}`, "点「下一课」或按 Enter"]);
     } else if (game.mode === "over") {
-      drawOverlayScreen("下课了", [game.toast || "校园需要再守一轮", `得分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」或按 Enter"]);
+      drawOverlayScreen("下课了", [game.toast || "校园需要再守一轮", `本局过关 ${game.cleared} 堂`, `得分 ${game.score}`, "点「重新开课」或按 Enter"]);
     } else if (game.mode === "win") {
-      drawOverlayScreen("圆满下课", ["白色老师坦克守住了学校", `总分 ${game.score}`, `最高 ${game.best}`, "点「重新开课」再教一届"]);
+      drawOverlayScreen("圆满下课", [`已过关 ${game.cleared} 堂`, `总分 ${game.score}`, "点「重新开课」再教一届"]);
     }
     ctx.restore();
   }
 
   function lessonTitle() {
-    const full = STAGES[game.stage]?.name || "第一课";
+    const full = currentMap()?.name || "第一课";
     return full.replace(/^第.+课 · /, "").replace(/^期末大考 · /, "");
   }
 
@@ -710,6 +774,10 @@
     if (game.score > game.best) {
       game.best = game.score;
       writeBest(game.best);
+    }
+    if (game.cleared > game.bestClears) {
+      game.bestClears = game.cleared;
+      writeClears(game.bestClears);
     }
     syncHud();
   }
@@ -734,13 +802,15 @@
 
   function syncHud() {
     hud.stage.textContent = String(game.stage + 1);
+    if (hud.cleared) hud.cleared.textContent = String(game.cleared);
     if (hud.lesson) hud.lesson.textContent = lessonTitle();
     hud.score.textContent = String(game.score);
-    if (hud.best) hud.best.textContent = String(game.best);
+    if (hud.best) hud.best.textContent = String(game.bestClears);
     hud.lives.textContent = String(Math.max(0, game.lives));
     if (hud.bell) hud.bell.textContent = String(Math.max(0, game.baseHp));
     hud.enemies.textContent = String(game.enemyLeft + game.enemies.length);
-    hud.power.textContent = "I".repeat(game.player ? game.player.power : 1);
+    if (hud.power) hud.power.textContent = WEAPON_LABELS[game.player?.weapon || "chalk"] || "粉笔炮";
+    if (hud.weapon) hud.weapon.textContent = WEAPON_LABELS[game.player?.weapon || "chalk"] || "粉笔炮";
     syncButtons();
   }
 
@@ -807,7 +877,7 @@
 
   function showMenuPreview() {
     game.grid = cloneGrid(STAGES[0].grid);
-    const def = STAGES[0];
+    const def = currentMap();
     const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
     placeFree(tank);
     game.player = tank;
