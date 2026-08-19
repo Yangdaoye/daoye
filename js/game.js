@@ -537,9 +537,12 @@
   }
 
   function drawTiles(layer) {
+    if (!game.grid[0]) return;
     for (let y = 0; y < MAP_SIZE; y++) {
+      const row = game.grid[y];
+      if (!row) continue;
       for (let x = 0; x < MAP_SIZE; x++) {
-        const t = game.grid[y][x];
+        const t = row[x];
         const px = x * TILE;
         const py = y * TILE;
         if (layer === "base") {
@@ -667,6 +670,16 @@
     if (game.mode !== "playing") beginFromMenu();
   });
 
+  function showMenuPreview() {
+    game.grid = cloneGrid(STAGES[0].grid);
+    const def = STAGES[0];
+    const tank = new Tank(def.playerSpawn.x, def.playerSpawn.y, "teacher", "player");
+    tank.x = clamp(tank.x, 0, WORLD - tank.w);
+    tank.y = clamp(tank.y, 0, WORLD - tank.h);
+    game.player = tank;
+  }
+
+  showMenuPreview();
   syncHud();
   requestAnimationFrame(loop);
 })();
