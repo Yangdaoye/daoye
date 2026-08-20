@@ -139,6 +139,8 @@
   max-width: min(720px, 92vw);
   padding: 10px 12px;
   animation: rise-in 0.85s ease-out both;
+  position: relative;
+  z-index: 5;
 }
 
 .site-rail__title {
