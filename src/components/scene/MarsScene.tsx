@@ -94,7 +94,16 @@ export function MarsScene() {
       className="mars-canvas"
       shadows
       dpr={[1, 1.75]}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      gl={{
+        antialias: true,
+        powerPreference: 'high-performance',
+        alpha: false,
+        preserveDrawingBuffer: true,
+        failIfMajorPerformanceCaveat: false,
+      }}
+      onCreated={({ gl }) => {
+        gl.setClearColor('#24160f', 1)
+      }}
       onPointerMissed={() => {
         /* keep selection */
       }}

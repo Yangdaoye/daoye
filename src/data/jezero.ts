@@ -78,7 +78,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '陨石坑底平原',
     mission: 'Mars 2020 Perseverance — Landing (18 Feb 2021)',
     imageCredit: 'NASA/JPL-Caltech',
-    localImage: '/images/sites/butler-landing.jpg',
+    localImage: './images/sites/butler-landing.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24542',
     photoCaption: 'Perseverance 任务影像参考 — 杰泽罗着陆区周边地表（NASA/JPL 公开资料）。',
     composition: [
@@ -104,7 +104,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '橄榄石富集岩层',
     mission: 'Perseverance — Crater Floor Campaign',
     imageCredit: 'NASA/JPL-Caltech/ASU',
-    localImage: '/images/sites/seitah.jpg',
+    localImage: './images/sites/seitah.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24764',
     photoCaption: 'Séítah 区域层状火成岩露头，含丰富橄榄石。',
     composition: [
@@ -131,7 +131,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '破碎粗糙坑底',
     mission: 'Perseverance — Crater Floor Campaign',
     imageCredit: 'NASA/JPL-Caltech/MSSS',
-    localImage: '/images/sites/maaz.jpg',
+    localImage: './images/sites/maaz.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24924',
     photoCaption: 'Máaz 单元粗糙熔岩状地表与采样钻探痕迹。',
     composition: [
@@ -157,7 +157,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲残留丘',
     mission: 'Perseverance Mastcam-Z / RIMFAX',
     imageCredit: 'NASA/JPL-Caltech/ASU/MSSS',
-    localImage: '/images/sites/kodiak.jpg',
+    localImage: './images/sites/kodiak.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24837',
     photoCaption: 'Kodiak 残丘显现清晰倾斜层理，证实古代三角洲沉积。',
     composition: [
@@ -183,7 +183,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲顶部岩层',
     mission: 'Perseverance — Delta Top Campaign',
     imageCredit: 'NASA/JPL-Caltech',
-    localImage: '/images/sites/wildcat-ridge.jpg',
+    localImage: './images/sites/wildcat-ridge.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA25324',
     photoCaption: 'Wildcat Ridge 细粒沉积岩，检测到有机分子与硫酸盐相关信号。',
     composition: [
@@ -210,7 +210,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲前缘小撞击坑',
     mission: 'Perseverance Remote Sensing',
     imageCredit: 'NASA/JPL-Caltech/University of Arizona',
-    localImage: '/images/sites/belva.jpg',
+    localImage: './images/sites/belva.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24838',
     photoCaption: '三角洲前缘地层剖面影像参考（NASA/JPL 公开资料）。',
     composition: [
@@ -236,7 +236,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '风成沙波纹',
     mission: 'Perseverance NAVCAM / MEDA',
     imageCredit: 'NASA/JPL-Caltech',
-    localImage: '/images/sites/sand-shadow.jpg',
+    localImage: './images/sites/sand-shadow.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24544',
     photoCaption: '活跃风成波纹；用于研究现代大气搬运与尘埃循环。',
     composition: [
@@ -262,7 +262,7 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '陨石坑西缘高地',
     mission: 'MRO CTX / HiRISE mosaic context',
     imageCredit: 'NASA/JPL-Caltech/MSSS',
-    localImage: '/images/sites/rim-overlook.jpg',
+    localImage: './images/sites/rim-overlook.jpg',
     imageUrl: 'https://images.nasa.gov/details/PIA24333',
     photoCaption: '从坑缘俯瞰杰泽罗盆地与西部河道入口（背景影像合成示意）。',
     composition: [

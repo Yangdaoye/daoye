@@ -29,24 +29,24 @@ export function MarsAtmosphere() {
 
   return (
     <>
-      <color attach="background" args={['#1c110c']} />
-      <fog attach="fog" args={['#6a4030', 35, 110]} />
+      <color attach="background" args={['#24160f']} />
+      <fog attach="fog" args={['#7a4a32', 45, 130]} />
       <Sky
         distance={450000}
-        sunPosition={[40, 8 + (1 - dust) * 10, -30]}
+        sunPosition={[40, 12 + (1 - dust) * 10, -30]}
         inclination={0.48}
         azimuth={0.25}
-        mieCoefficient={0.02 + dust * 0.04}
+        mieCoefficient={0.015 + dust * 0.03}
         mieDirectionalG={0.7}
-        rayleigh={0.15}
-        turbidity={12 + dust * 8}
+        rayleigh={0.2}
+        turbidity={10 + dust * 6}
       />
       <Stars radius={180} depth={40} count={1200} factor={2} saturation={0} fade speed={0.4} />
-      <hemisphereLight args={['#c4895a', '#3a2218', 0.55 + opacity * 0.2]} />
+      <hemisphereLight args={['#e0a878', '#4a2a1c', 0.75 + opacity * 0.2]} />
       <directionalLight
         castShadow
-        intensity={1.15 - dust * 0.35}
-        position={[35, 42, -20]}
+        intensity={1.45 - dust * 0.3}
+        position={[35, 48, -20]}
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-camera-far={120}
@@ -54,9 +54,9 @@ export function MarsAtmosphere() {
         shadow-camera-right={50}
         shadow-camera-top={50}
         shadow-camera-bottom={-50}
-        color="#ffd0a8"
+        color="#ffe0b8"
       />
-      <ambientLight intensity={0.22 + dust * 0.1} color="#b87850" />
+      <ambientLight intensity={0.38 + dust * 0.12} color="#c88858" />
 
       <points ref={group}>
         <bufferGeometry>

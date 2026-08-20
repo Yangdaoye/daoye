@@ -1,8 +1,41 @@
-.app-shell {
+.app-shell,
+.map-shell {
   position: relative;
   width: 100%;
   height: 100%;
   isolation: isolate;
+}
+
+.mode-switch {
+  position: absolute;
+  z-index: 6;
+  top: auto;
+  bottom: 78px;
+  left: 14px;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  pointer-events: auto;
+}
+
+.mode-switch--map {
+  position: relative;
+  top: 0;
+  bottom: auto;
+  left: 0;
+  margin: 14px 14px 0;
+  width: fit-content;
+}
+
+.webgl-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  background: #1a100c;
 }
 
 .scene-layer {
