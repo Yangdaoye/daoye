@@ -57,23 +57,14 @@ export function InfoPanel() {
         <section className="info-block">
           <h3>任务影像</h3>
           <figure className="photo-frame">
-            <img
-              src={site.imageUrl}
-              alt={site.photoCaption}
-              loading="lazy"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                const el = e.currentTarget
-                el.style.display = 'none'
-                const fallback = el.nextElementSibling as HTMLElement | null
-                if (fallback) fallback.hidden = false
-              }}
-            />
-            <div className="photo-fallback" hidden>
-              <strong>影像链接暂不可用</strong>
-              <p>请参阅 NASA/JPL 公开图库中的对应 Perseverance / MRO 资料。</p>
-            </div>
-            <figcaption>{site.photoCaption}</figcaption>
+            <img src={site.localImage} alt={site.photoCaption} loading="lazy" />
+            <figcaption>
+              {site.photoCaption}
+              <br />
+              <a className="ref-link" href={site.imageUrl} target="_blank" rel="noreferrer">
+                查看 NASA/JPL 原始公开影像参考
+              </a>
+            </figcaption>
           </figure>
         </section>
       )}

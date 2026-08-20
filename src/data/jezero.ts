@@ -31,6 +31,9 @@ export type MarsSite = {
   landformZh: string
   mission: string
   imageCredit: string
+  /** Local teaching preview bundled with the app */
+  localImage: string
+  /** Public NASA/JPL reference URL (may be blocked by hotlink policy) */
   imageUrl: string
   photoCaption: string
   composition: MaterialProfile[]
@@ -75,8 +78,9 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '陨石坑底平原',
     mission: 'Mars 2020 Perseverance — Landing (18 Feb 2021)',
     imageCredit: 'NASA/JPL-Caltech',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/25633_PIA24489-web.jpg',
-    photoCaption: '“降落伞下的火星” — Perseverance 下降阶段拍摄的杰泽罗地表。',
+    localImage: '/images/sites/butler-landing.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24542',
+    photoCaption: 'Perseverance 任务影像参考 — 杰泽罗着陆区周边地表（NASA/JPL 公开资料）。',
     composition: [
       { name: '玄武质碎屑 / Basaltic regolith', abundancePct: 62, note: '坑底风化层主体' },
       { name: '橄榄石 / Olivine', abundancePct: 18, note: '与 Séítah 单元相关' },
@@ -100,7 +104,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '橄榄石富集岩层',
     mission: 'Perseverance — Crater Floor Campaign',
     imageCredit: 'NASA/JPL-Caltech/ASU',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/25948_PIA24764-web.jpg',
+    localImage: '/images/sites/seitah.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24764',
     photoCaption: 'Séítah 区域层状火成岩露头，含丰富橄榄石。',
     composition: [
       { name: '橄榄石 / Olivine', abundancePct: 35, note: '粗粒火成堆积' },
@@ -126,7 +131,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '破碎粗糙坑底',
     mission: 'Perseverance — Crater Floor Campaign',
     imageCredit: 'NASA/JPL-Caltech/MSSS',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/26112_PIA24924-web.jpg',
+    localImage: '/images/sites/maaz.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24924',
     photoCaption: 'Máaz 单元粗糙熔岩状地表与采样钻探痕迹。',
     composition: [
       { name: '玄武岩 / Basalt', abundancePct: 48, note: '熔岩流形态单元' },
@@ -151,7 +157,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲残留丘',
     mission: 'Perseverance Mastcam-Z / RIMFAX',
     imageCredit: 'NASA/JPL-Caltech/ASU/MSSS',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/26023_PIA24837-web.jpg',
+    localImage: '/images/sites/kodiak.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24837',
     photoCaption: 'Kodiak 残丘显现清晰倾斜层理，证实古代三角洲沉积。',
     composition: [
       { name: '碎屑砂岩 / Clastic sandstone', abundancePct: 40, note: '河流—三角洲搬运' },
@@ -176,7 +183,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲顶部岩层',
     mission: 'Perseverance — Delta Top Campaign',
     imageCredit: 'NASA/JPL-Caltech',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/26758_PIA25324-web.jpg',
+    localImage: '/images/sites/wildcat-ridge.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA25324',
     photoCaption: 'Wildcat Ridge 细粒沉积岩，检测到有机分子与硫酸盐相关信号。',
     composition: [
       { name: '细粒泥岩 / Fine mudstone', abundancePct: 38, note: '低能沉积环境' },
@@ -202,8 +210,9 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '三角洲前缘小撞击坑',
     mission: 'Perseverance Remote Sensing',
     imageCredit: 'NASA/JPL-Caltech/University of Arizona',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/26041_PIA24852-web.jpg',
-    photoCaption: '贝尔瓦坑壁暴露三角洲内部地层剖面。',
+    localImage: '/images/sites/belva.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24838',
+    photoCaption: '三角洲前缘地层剖面影像参考（NASA/JPL 公开资料）。',
     composition: [
       { name: '层状沉积岩', abundancePct: 45, note: '坑壁剖面可见' },
       { name: '角砾 / Breccia', abundancePct: 20, note: '撞击扰动' },
@@ -227,7 +236,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '风成沙波纹',
     mission: 'Perseverance NAVCAM / MEDA',
     imageCredit: 'NASA/JPL-Caltech',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/25712_PIA24544-web.jpg',
+    localImage: '/images/sites/sand-shadow.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24544',
     photoCaption: '活跃风成波纹；用于研究现代大气搬运与尘埃循环。',
     composition: [
       { name: '玄武质沙 / Basaltic sand', abundancePct: 55, note: '局地风化产物' },
@@ -252,7 +262,8 @@ export const JEZERO_SITES: MarsSite[] = [
     landformZh: '陨石坑西缘高地',
     mission: 'MRO CTX / HiRISE mosaic context',
     imageCredit: 'NASA/JPL-Caltech/MSSS',
-    imageUrl: 'https://mars.nasa.gov/system/resources/detail_files/25078_PIA24333-web.jpg',
+    localImage: '/images/sites/rim-overlook.jpg',
+    imageUrl: 'https://images.nasa.gov/details/PIA24333',
     photoCaption: '从坑缘俯瞰杰泽罗盆地与西部河道入口（背景影像合成示意）。',
     composition: [
       { name: '撞击角砾岩', abundancePct: 40, note: '坑缘构造' },

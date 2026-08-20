@@ -284,6 +284,16 @@
   line-height: 1.4;
 }
 
+.ref-link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(224, 164, 90, 0.35);
+}
+
+.ref-link:hover {
+  color: #ffd29a;
+}
+
 .comp-list {
   list-style: none;
   margin: 0;
