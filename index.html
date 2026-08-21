@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AREOS — 火星模拟器</title>
+    <meta
+      name="description"
+      content="AREOS 火星轨道与地表环境模拟器：三维火星、昼夜循环、沙尘暴与遥测数据。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="mars-canvas" aria-label="三维火星场景"></canvas>
+
+      <div class="atmosphere-veil" aria-hidden="true"></div>
+      <div class="dust-layer" id="dust-layer" aria-hidden="true"></div>
+
+      <header class="brand-bar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div class="brand-text">
+            <h1 class="brand-name">AREOS</h1>
+            <p class="brand-sub">火星轨道与地表模拟</p>
+          </div>
+        </div>
+        <p class="sol-clock" id="sol-clock">Sol 0 · 00:00</p>
+      </header>
+
+      <section class="hero-copy">
+        <p class="lede">
+          在赤色行星的轨道阴影与地表尘雾之间，观察昼夜、温压与沙尘如何共同塑造火星。
+        </p>
+        <div class="cta-row">
+          <button type="button" class="btn btn-primary" id="btn-land">降落视角</button>
+          <button type="button" class="btn btn-ghost" id="btn-orbit">轨道巡航</button>
+        </div>
+      </section>
+
+      <aside class="panel telemetry" aria-label="环境遥测">
+        <h2 class="panel-title">地表遥测</h2>
+        <dl class="metrics" id="metrics">
+          <div class="metric">
+            <dt>温度</dt>
+            <dd id="m-temp">—</dd>
+          </div>
+          <div class="metric">
+            <dt>气压</dt>
+            <dd id="m-pressure">—</dd>
+          </div>
+          <div class="metric">
+            <dt>风速</dt>
+            <dd id="m-wind">—</dd>
+          </div>
+          <div class="metric">
+            <dt>辐射</dt>
+            <dd id="m-rad">—</dd>
+          </div>
+          <div class="metric">
+            <dt>能见度</dt>
+            <dd id="m-vis">—</dd>
+          </div>
+          <div class="metric">
+            <dt>太阳高度</dt>
+            <dd id="m-sun">—</dd>
+          </div>
+        </dl>
+      </aside>
+
+      <aside class="panel controls" aria-label="模拟控制">
+        <h2 class="panel-title">模拟控制</h2>
+
+        <label class="control">
+          <span>时间加速</span>
+          <input type="range" id="speed" min="0" max="4" step="1" value="1" />
+          <em id="speed-label">×1</em>
+        </label>
+
+        <label class="control">
+          <span>纬度</span>
+          <input type="range" id="latitude" min="-90" max="90" step="1" value="18" />
+          <em id="lat-label">18°N</em>
+        </label>
+
+        <label class="control">
+          <span>沙尘强度</span>
+          <input type="range" id="dust" min="0" max="100" step="1" value="12" />
+          <em id="dust-label">12%</em>
+        </label>
+
+        <div class="toggles">
+          <button type="button" class="chip active" id="toggle-moons" aria-pressed="true">
+            火卫一 / 火卫二
+          </button>
+          <button type="button" class="chip active" id="toggle-atm" aria-pressed="true">
+            大气层
+          </button>
+          <button type="button" class="chip" id="toggle-storm" aria-pressed="false">
+            触发沙尘暴
+          </button>
+        </div>
+
+        <p class="hint" id="site-hint">着陆点：耶泽罗陨石坑</p>
+      </aside>
+
+      <footer class="status-bar">
+        <span id="mode-label">模式：轨道巡航</span>
+        <span id="fps-label">60 fps</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
