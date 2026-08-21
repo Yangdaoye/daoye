@@ -377,8 +377,9 @@ function createDustParticles() {
   return {
     points,
     update(dt: number, dust: number) {
-      mat.opacity = 0.15 + dust * 0.75
-      mat.size = 0.02 + dust * 0.07
+      mat.opacity = 0.14 + dust * 0.58
+      // Keep particles granular at narrow viewports and near-surface distances.
+      mat.size = 0.016 + dust * 0.03
       const pos = geo.attributes.position as THREE.BufferAttribute
       const arr = pos.array as Float32Array
       for (let i = 0; i < count; i++) {
