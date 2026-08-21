@@ -1,14 +1,14 @@
-# Mars Simulator / 火星模拟器
+# Ares Frontier / 火星拓荒模拟器
 
-Interactive WebGL Mars environment simulator built with Vite, TypeScript, and Three.js.
+Interactive WebGL Mars colony simulator built with Vite, TypeScript, and Three.js.
 
 ## Features
 
-- Procedural Mars globe (highlands, canyons, polar ice, Tharsis volcanoes)
-- Day/night lighting driven by Martian local time (sol hour)
-- Dust storm intensity with particle haze and atmosphere response
-- Live surface telemetry: temperature, pressure, wind, radiation
-- Orbit / near-surface camera modes, Phobos & Deimos
+- Live oxygen, water, food, power, materials, and science economy
+- Construct solar arrays, ice extractors, greenhouses, habitats, and labs
+- Rover expeditions, orbital supply windows, mission events, and milestones
+- Procedural Mars globe with growing surface outpost network
+- Day/night lighting, dust storms, telemetry, orbit and near-surface cameras
 
 ## Develop
 

@@ -33,6 +33,7 @@ export type MarsScene = {
   renderer: THREE.WebGLRenderer
   update: (state: SimState, dt: number) => void
   setViewMode: (mode: 'orbit' | 'surface') => void
+  setColonyLevel: (level: number) => void
   dispose: () => void
 }
 
@@ -96,6 +97,10 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
   })
   const mars = new THREE.Mesh(marsGeo, marsMat)
   scene.add(mars)
+
+  // Frontier outposts rotate with the planet and unlock as the colony grows.
+  const outposts = createOutpostNetwork()
+  mars.add(outposts.group)
 
   // Thin CO2 atmosphere shell
   const atmoMat = new THREE.ShaderMaterial({
@@ -238,6 +243,12 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
     controls.update()
   }
 
+  const setColonyLevel = (level: number) => {
+    outposts.beacons.forEach((beacon, index) => {
+      beacon.visible = index < Math.max(1, Math.ceil(level / 2))
+    })
+  }
+
   const dispose = () => {
     window.removeEventListener('resize', onResize)
     controls.dispose()
@@ -249,9 +260,66 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
     atmoMat.dispose()
     dustMat.dispose()
     dustSystem.dispose()
+    outposts.dispose()
   }
 
-  return { renderer, update, setViewMode, dispose }
+  return { renderer, update, setViewMode, setColonyLevel, dispose }
+}
+
+function createOutpostNetwork() {
+  const group = new THREE.Group()
+  const beacons: THREE.Group[] = []
+  const locations = [
+    [0.44, 0.3],
+    [-0.25, 1.7],
+    [0.12, 3.25],
+    [-0.48, 4.6],
+    [0.62, 5.45],
+  ] as const
+
+  for (const [latitude, longitude] of locations) {
+    const beacon = new THREE.Group()
+    const radius = 1.016
+    const normal = new THREE.Vector3(
+      Math.cos(latitude) * Math.cos(longitude),
+      Math.sin(latitude),
+      Math.cos(latitude) * Math.sin(longitude),
+    )
+    beacon.position.copy(normal.multiplyScalar(radius))
+    beacon.lookAt(normal.clone().multiplyScalar(2))
+
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.012, 10, 10),
+      new THREE.MeshBasicMaterial({ color: 0xffd09c }),
+    )
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(0.024, 0.036, 20),
+      new THREE.MeshBasicMaterial({
+        color: 0xff6b35,
+        transparent: true,
+        opacity: 0.78,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    )
+    halo.position.z = 0.003
+    beacon.add(core, halo)
+    beacons.push(beacon)
+    group.add(beacon)
+  }
+
+  return {
+    group,
+    beacons,
+    dispose() {
+      group.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        object.geometry.dispose()
+        if (Array.isArray(object.material)) object.material.forEach((material) => material.dispose())
+        else object.material.dispose()
+      })
+    },
+  }
 }
 
 function createMoon(radius: number, color: number): THREE.Mesh {
