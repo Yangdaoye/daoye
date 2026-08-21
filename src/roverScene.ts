@@ -125,6 +125,9 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
 
   const cockpit = createCockpit()
   camera.add(cockpit.group)
+  const cabinLight = new THREE.PointLight(0xffb17c, 2.2, 4)
+  cabinLight.position.set(0.2, -0.1, -0.3)
+  camera.add(cabinLight)
 
   const controlState: Record<DriveControl, boolean> = {
     forward: false,
@@ -562,8 +565,10 @@ function createCockpit() {
   }
 
   const armRoot = new THREE.Group()
-  armRoot.position.set(0.76, -0.66, -0.9)
-  armRoot.rotation.set(-0.25, 0.18, -0.12)
+  // Mounted on the right side, extending inward so the full arm is always
+  // visible through the lower windshield during collection.
+  armRoot.position.set(0.9, -0.38, -1.18)
+  armRoot.rotation.set(-0.18, -0.08, 0.12)
   group.add(armRoot)
 
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), orange)
@@ -573,29 +578,29 @@ function createCockpit() {
   armRoot.add(upperPivot)
   const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.72, 10), metal)
   upper.rotation.z = Math.PI / 2
-  upper.position.x = 0.36
+  upper.position.x = -0.36
   upperPivot.add(upper)
 
   const elbowPivot = new THREE.Group()
-  elbowPivot.position.x = 0.72
+  elbowPivot.position.x = -0.72
   upperPivot.add(elbowPivot)
   const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 10), orange)
   elbowPivot.add(elbow)
 
   const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.045, 0.62, 10), metal)
   forearm.rotation.z = Math.PI / 2
-  forearm.position.x = 0.31
+  forearm.position.x = -0.31
   elbowPivot.add(forearm)
 
   const claw = new THREE.Group()
-  claw.position.x = 0.62
+  claw.position.x = -0.62
   elbowPivot.add(claw)
   const palm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.12), orange)
   claw.add(palm)
   const fingers: THREE.Mesh[] = []
   for (const y of [-0.075, 0.075]) {
     const finger = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 0.035), metal)
-    finger.position.set(0.1, y, 0)
+    finger.position.set(-0.1, y, 0)
     claw.add(finger)
     fingers.push(finger)
   }
@@ -606,17 +611,17 @@ function createCockpit() {
     group,
     setArmPhase(phase: number) {
       const reach = Math.sin(Math.min(1, phase) * Math.PI)
-      armRoot.rotation.x = -0.25 + reach * 0.52
-      armRoot.rotation.y = 0.18 - reach * 0.35
-      upperPivot.rotation.z = -0.2 - reach * 0.48
-      elbowPivot.rotation.z = 0.35 + reach * 0.72
+      armRoot.rotation.x = -0.18 + reach * 0.42
+      armRoot.rotation.y = -0.08 + reach * 0.26
+      upperPivot.rotation.z = 0.16 + reach * 0.4
+      elbowPivot.rotation.z = -0.3 - reach * 0.65
       const grip = phase > 0.55 ? Math.max(0.025, 0.075 - (phase - 0.55) * 0.11) : 0.075
       fingers[0].position.y = -grip
       fingers[1].position.y = grip
     },
     animate(dt: number, velocity: number, tracking: boolean) {
       idleTime += dt
-      if (!tracking) armRoot.rotation.z = -0.12 + Math.sin(idleTime * 1.3) * 0.008
+      if (!tracking) armRoot.rotation.z = 0.12 + Math.sin(idleTime * 1.3) * 0.008
       dashboard.rotation.z = Math.sin(idleTime * 12) * Math.abs(velocity) * 0.00025
     },
     dispose() {
