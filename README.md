@@ -1,14 +1,15 @@
-# Ares Frontier / 火星拓荒模拟器
+# Ares Rover / 火星第一视角拓荒模拟器
 
-Interactive WebGL Mars colony simulator built with Vite, TypeScript, and Three.js.
+First-person WebGL Mars rover simulator built with Vite, TypeScript, and Three.js.
 
 ## Features
 
-- Live oxygen, water, food, power, materials, and science economy
-- Construct solar arrays, ice extractors, greenhouses, habitats, and labs
-- Rover expeditions, orbital supply windows, mission events, and milestones
-- Procedural Mars globe with growing surface outpost network
-- Day/night lighting, dust storms, telemetry, orbit and near-surface cameras
+- First-person rover cockpit on a procedural Martian surface
+- WASD / arrow-key driving, mouse-drag view control, live telemetry
+- 34 m Raman/LIBS material scanning with target tracking
+- Visible six-axis robotic arm with animated sample collection
+- Six-slot sample bay, mineral composition data, mission feedback
+- Dynamic daylight, dust storms, headlights and mobile drive controls
 
 ## Develop
 

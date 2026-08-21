@@ -1,384 +1,332 @@
 import './style.css'
-import { createMarsScene } from './marsScene'
 import {
-  BUILDINGS,
-  buildFacility,
-  createColonyState,
-  getColonyLevel,
-  getHabitatCapacity,
-  launchExpedition,
-  requestSupply,
-  tickColony,
-  type BuildingKey,
-  type ColonyState,
-  type ResourceKey,
-} from './colony'
-import {
-  createInitialState,
-  formatSolHour,
-  tickState,
-  type SimState,
-} from './simulation'
-
-const RESOURCE_META: Record<ResourceKey, { label: string; unit: string; icon: string }> = {
-  oxygen: { label: '氧气', unit: '%', icon: 'O₂' },
-  water: { label: '水', unit: '%', icon: 'H₂O' },
-  food: { label: '食物', unit: '%', icon: 'FD' },
-  power: { label: '电力', unit: '%', icon: '⚡' },
-  materials: { label: '建材', unit: ' u', icon: 'MAT' },
-  science: { label: '科研', unit: ' pt', icon: 'SCI' },
-}
+  createRoverScene,
+  type DriveControl,
+  type RoverEvent,
+  type RoverTelemetry,
+} from './roverScene'
+import { createInitialState, formatSolHour, tickState, type SimState } from './simulation'
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 app.innerHTML = `
-  <canvas id="mars-canvas" aria-label="火星三维拓荒模拟画布"></canvas>
-  <div class="scanlines" aria-hidden="true"></div>
-  <main class="command-ui">
+  <canvas id="mars-canvas" aria-label="火星车第一视角驾驶画面"></canvas>
+  <div class="screen-grain" aria-hidden="true"></div>
+  <main class="rover-ui">
     <header class="topbar">
       <div class="brand">
-        <div class="brand__identity">
-          <span class="brand__pulse" aria-hidden="true"></span>
-          <div>
-            <h1 class="brand__name">火星拓荒局</h1>
-            <p class="brand__sub">ARES FRONTIER CONTROL</p>
-          </div>
-        </div>
-        <div class="mission-badge">
-          <span>任务</span>
-          <strong>曙光基地 · UTOPIA 01</strong>
+        <span class="brand__pulse"></span>
+        <div>
+          <h1>寻路者 <b>07</b></h1>
+          <p>ARES FRONTIER · SURFACE ROVER</p>
         </div>
       </div>
-
+      <div class="mission-title">
+        <span>当前任务</span>
+        <strong>乌托邦平原 · 原位资源勘探</strong>
+      </div>
       <div class="mission-clock">
-        <div>
-          <span class="eyebrow">任务时间</span>
-          <strong id="mission-sol">SOL 001</strong>
-        </div>
-        <div>
-          <span class="eyebrow">火星当地时</span>
-          <strong id="mission-time">09:30</strong>
-        </div>
-        <div class="link-status"><i></i> 地球链路在线</div>
+        <div><span>SOL</span><strong id="sol">001</strong></div>
+        <div><span>火星时</span><strong id="clock">09:30</strong></div>
+        <div class="signal"><i></i> 遥测在线</div>
       </div>
     </header>
 
-    <aside class="rail rail--left">
-      <section class="panel colony-card">
-        <div class="panel__head">
-          <div>
-            <span class="eyebrow">COLONY STATUS</span>
-            <h2>殖民地状态</h2>
-          </div>
-          <span class="status-chip status-chip--good" id="colony-status">运行稳定</span>
+    <aside class="hud-panel hud-panel--left">
+      <section class="panel telemetry-panel">
+        <div class="panel-title">
+          <div><span>ROVER TELEMETRY</span><h2>小车遥测</h2></div>
+          <em id="drive-status">待机</em>
         </div>
-        <div class="crew-overview">
-          <div class="crew-count">
-            <span id="population">06</span>
-            <small>拓荒者</small>
-          </div>
-          <div class="crew-stat">
-            <span>士气 <b id="morale">86%</b></span>
-            <div class="mini-bar"><i id="morale-bar" style="width:86%"></i></div>
-            <span>基地完整度 <b id="integrity">100%</b></span>
-            <div class="mini-bar"><i id="integrity-bar" style="width:100%"></i></div>
-          </div>
+        <div class="speedometer">
+          <strong id="speed">0.0</strong>
+          <span>km/h</span>
+          <div class="speed-track"><i id="speed-bar"></i></div>
         </div>
-      </section>
-
-      <section class="panel resources-panel">
-        <div class="panel__head">
-          <div>
-            <span class="eyebrow">LIFE SUPPORT</span>
-            <h2>生存资源</h2>
-          </div>
-          <span class="tiny-label">每 Sol 净变化</span>
+        <div class="telemetry-grid">
+          <div><span>航向</span><strong id="heading">000°</strong></div>
+          <div><span>坡度</span><strong id="slope">0.0°</strong></div>
+          <div><span>里程</span><strong id="distance">0.0 m</strong></div>
+          <div><span>电量</span><strong id="battery">96%</strong></div>
         </div>
-        <div class="resource-list" id="resource-list"></div>
+        <div class="coordinate">
+          <span>LOCAL POSITION</span>
+          <strong id="coordinate">N 00.0 · E 00.0</strong>
+        </div>
       </section>
 
       <section class="panel environment-panel">
-        <div class="panel__head compact">
-          <div>
-            <span class="eyebrow">EXTERNAL</span>
-            <h2>地表环境</h2>
-          </div>
-          <button class="icon-btn" id="btn-storm" aria-label="切换尘暴">尘暴</button>
+        <div class="panel-title compact">
+          <div><span>ENVIRONMENT</span><h2>环境监测</h2></div>
+          <button class="tiny-btn" id="btn-storm">尘暴模拟</button>
         </div>
         <div class="environment-grid">
-          <div><span>温度</span><strong id="env-temp">—</strong></div>
-          <div><span>风速</span><strong id="env-wind">—</strong></div>
-          <div><span>辐射</span><strong id="env-rad">—</strong></div>
-          <div><span>尘暴</span><strong id="env-dust">18%</strong></div>
+          <div><span>温度</span><b id="env-temp">—</b></div>
+          <div><span>气压</span><b id="env-pressure">—</b></div>
+          <div><span>风速</span><b id="env-wind">—</b></div>
+          <div><span>辐射</span><b id="env-rad">—</b></div>
+        </div>
+      </section>
+
+      <section class="panel nav-panel">
+        <div class="panel-title compact">
+          <div><span>NAVIGATION</span><h2>驾驶提示</h2></div>
+        </div>
+        <div class="key-guide">
+          <div class="keys">
+            <kbd>W</kbd>
+            <span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>
+          </div>
+          <p>WASD / 方向键驾驶<br>拖拽画面转动视角</p>
         </div>
       </section>
     </aside>
 
-    <section class="planet-stage">
-      <div class="target-reticle" aria-hidden="true">
-        <span></span>
-        <i></i>
+    <section class="viewport-hud">
+      <div class="horizon">
+        <span>-10</span><i></i><strong>0</strong><i></i><span>+10</span>
       </div>
-      <div class="site-card">
-        <span class="site-card__index">01</span>
-        <div>
-          <small>UTOPIA PLANITIA · 25.2°N 110.1°E</small>
-          <strong>曙光基地</strong>
-          <em><i></i> 信标已锁定</em>
-        </div>
+      <div class="crosshair" id="crosshair">
+        <i></i><span></span><b></b>
       </div>
-      <p class="interaction-hint">拖拽旋转星球 · 滚轮缩放</p>
+      <div class="target-distance" id="target-distance">NO TARGET</div>
+      <div class="compass">
+        <span>W</span><i></i><span>N</span><i></i><span>E</span>
+        <b id="compass-heading">000°</b>
+      </div>
+      <div class="windshield-label windshield-label--left">CAM 01 · NAV</div>
+      <div class="windshield-label windshield-label--right">拖拽查看 · WASD 驾驶</div>
     </section>
 
-    <aside class="rail rail--right">
-      <section class="panel build-panel">
-        <div class="panel__head">
-          <div>
-            <span class="eyebrow">CONSTRUCTION</span>
-            <h2>基地建设</h2>
-          </div>
-          <span class="material-stock"><b id="material-stock">165</b> 建材</span>
+    <aside class="hud-panel hud-panel--right">
+      <section class="panel scanner-panel">
+        <div class="panel-title">
+          <div><span>RAMAN / LIBS</span><h2>物质扫描仪</h2></div>
+          <em id="scanner-status">就绪</em>
         </div>
-        <div class="build-list" id="build-list"></div>
+        <div class="scanner-visual">
+          <div class="scanner-ring"><i></i><span id="scan-formula">?</span></div>
+          <div class="spectrum" aria-hidden="true">
+            <i style="height:35%"></i><i style="height:62%"></i><i style="height:44%"></i>
+            <i style="height:88%"></i><i style="height:51%"></i><i style="height:76%"></i>
+            <i style="height:28%"></i><i style="height:68%"></i><i style="height:42%"></i>
+          </div>
+        </div>
+        <div class="sample-data">
+          <span>目标物质</span>
+          <strong id="sample-name">未锁定</strong>
+          <p id="sample-composition">按下扫描按钮，分析 34 m 范围内的矿物。</p>
+          <div><span>距离</span><b id="sample-distance">—</b></div>
+          <div><span>采集条件</span><b id="sample-range">≤ 4.2 m</b></div>
+        </div>
+        <button class="action-btn action-btn--scan" id="btn-scan">
+          <span>⌁</span>
+          <div><small>SPACE</small><strong>扫描附近物质</strong></div>
+        </button>
       </section>
 
-      <section class="panel milestone-panel">
-        <div class="panel__head compact">
-          <div>
-            <span class="eyebrow">MILESTONE</span>
-            <h2>拓荒里程碑</h2>
-          </div>
-          <strong id="milestone-percent">28%</strong>
+      <section class="panel storage-panel">
+        <div class="panel-title compact">
+          <div><span>SAMPLE BAY</span><h2>样本舱</h2></div>
+          <em id="storage-count">0 / 6</em>
         </div>
-        <div class="milestone-track"><i id="milestone-bar" style="width:28%"></i></div>
-        <p id="milestone-copy">建造冰层提取站，使基地获得稳定水源。</p>
+        <div class="storage-slots" id="storage-slots">
+          ${Array.from({ length: 6 }, (_, index) => `<div class="storage-slot"><span>0${index + 1}</span><i></i><b>空</b></div>`).join('')}
+        </div>
       </section>
     </aside>
 
-    <footer class="command-deck">
-      <section class="panel event-log">
-        <div class="panel__head compact">
-          <div>
-            <span class="eyebrow">MISSION LOG</span>
-            <h2>任务日志</h2>
-          </div>
-          <span class="live-dot">实时</span>
+    <footer class="control-deck">
+      <section class="panel event-panel">
+        <div class="panel-title compact">
+          <div><span>MISSION FEED</span><h2>任务反馈</h2></div>
+          <em class="live"><i></i> LIVE</em>
         </div>
-        <div class="log-list" id="log-list"></div>
+        <div class="event-list" id="event-list">
+          <div class="event event--info"><time>09:30</time><i></i><p>寻路者 07 已离开曙光基地，开始地表资源勘探。</p></div>
+          <div class="event event--success"><time>09:31</time><i></i><p>机械臂自检完成，六轴关节与夹爪状态正常。</p></div>
+        </div>
       </section>
 
-      <section class="panel operations">
-        <div class="operation-main">
-          <button class="operation-btn operation-btn--primary" id="btn-expedition">
-            <span class="operation-icon">◎</span>
-            <span><small>ROVER MISSION</small><strong>派遣火星车勘探</strong></span>
-            <em id="expedition-state">可执行</em>
-          </button>
-          <button class="operation-btn" id="btn-supply">
-            <span class="operation-icon">↓</span>
-            <span><small>ORBITAL CARGO</small><strong>申请轨道补给</strong></span>
-            <em id="supply-state">窗口开放</em>
-          </button>
+      <section class="panel arm-panel" id="arm-panel">
+        <div class="arm-status">
+          <span class="arm-icon">ARM</span>
+          <div><small>六轴机械臂</small><strong id="arm-state">待命</strong></div>
         </div>
-        <div class="sim-controls">
-          <div class="view-switch">
-            <button class="is-active" id="btn-orbit">轨道</button>
-            <button id="btn-surface">近地</button>
-          </div>
-          <button class="pause-btn" id="btn-pause" aria-label="暂停模拟">Ⅱ</button>
-          <label class="speed-control">
-            <span>模拟速度</span>
-            <select id="ctrl-speed">
+        <div class="arm-diagram" aria-hidden="true">
+          <i></i><i></i><span></span><b></b>
+        </div>
+        <button class="action-btn action-btn--grab" id="btn-collect">
+          <span>⌾</span>
+          <div><small>E · RANGE 4.2 M</small><strong>展开机械臂夹取</strong></div>
+        </button>
+      </section>
+
+      <section class="drive-controls">
+        <div class="drive-pad" aria-label="小车方向控制">
+          <button data-control="forward" aria-label="前进">▲</button>
+          <button data-control="left" aria-label="左转">◀</button>
+          <button data-control="backward" aria-label="后退">▼</button>
+          <button data-control="right" aria-label="右转">▶</button>
+        </div>
+        <div class="system-buttons">
+          <button id="btn-lights"><i></i> 前灯</button>
+          <button id="btn-reset">↺ 复位</button>
+          <label>模拟速度
+            <select id="speed-select">
               <option value="0.5">0.5×</option>
               <option value="1" selected>1×</option>
               <option value="2">2×</option>
-              <option value="4">4×</option>
             </select>
           </label>
         </div>
       </section>
     </footer>
   </main>
-
-  <div class="toast" id="toast" role="status">
-    <i></i>
-    <span id="toast-message"></span>
-  </div>
+  <div class="toast" id="toast"><i></i><span id="toast-message"></span></div>
 `
 
 const canvas = query<HTMLCanvasElement>('#mars-canvas')
-const scene = createMarsScene(canvas)
-const sim: SimState = createInitialState()
-const colony: ColonyState = createColonyState()
+const rover = createRoverScene(canvas)
+const simulation: SimState = createInitialState()
+simulation.autoRotate = false
+simulation.dust = 0.16
 
-const resourceList = query('#resource-list')
-const buildList = query('#build-list')
-const logList = query('#log-list')
-const toast = query('#toast')
-const toastMessage = query('#toast-message')
+const events: Array<RoverEvent & { time: string }> = [
+  { tone: 'info', message: '寻路者 07 已离开曙光基地，开始地表资源勘探。', time: '09:30' },
+  { tone: 'success', message: '机械臂自检完成，六轴关节与夹爪状态正常。', time: '09:31' },
+]
 let toastTimer = 0
-let lastRenderedLog = 0
+let lastStorageCount = 0
 
-resourceList.innerHTML = (Object.keys(RESOURCE_META) as ResourceKey[])
-  .map((key) => {
-    const meta = RESOURCE_META[key]
-    return `
-      <div class="resource-row" data-resource="${key}">
-        <span class="resource-icon">${meta.icon}</span>
-        <div class="resource-data">
-          <div><span>${meta.label}</span><b id="resource-${key}">—</b></div>
-          <div class="resource-track"><i id="resource-bar-${key}"></i></div>
-        </div>
-        <em id="resource-rate-${key}">—</em>
-      </div>
-    `
-  })
-  .join('')
-
-buildList.innerHTML = BUILDINGS.map(
-  (building) => `
-    <button class="build-card" data-build="${building.key}">
-      <span class="build-code">${building.code}</span>
-      <span class="build-copy">
-        <strong>${building.name}</strong>
-        <small>${building.description}</small>
-      </span>
-      <span class="build-cost"><b>${building.cost}</b> MAT</span>
-      <span class="build-count" id="count-${building.key}">×0</span>
-    </button>
-  `,
-).join('')
-
-buildList.addEventListener('click', (event) => {
-  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-build]')
-  if (!button) return
-  const result = buildFacility(colony, button.dataset.build as BuildingKey)
-  showToast(result.message, result.ok)
-  renderColony(true)
-})
-
-query('#btn-expedition').addEventListener('click', () => {
-  const result = launchExpedition(colony)
-  showToast(result.message, result.ok)
-  renderColony(true)
-})
-
-query('#btn-supply').addEventListener('click', () => {
-  const result = requestSupply(colony)
-  showToast(result.message, result.ok)
-  renderColony(true)
-})
+query('#btn-scan').addEventListener('click', () => handleEvent(rover.scan()))
+query('#btn-collect').addEventListener('click', () => handleEvent(rover.collect()))
 
 query('#btn-storm').addEventListener('click', (event) => {
-  sim.stormActive = !sim.stormActive
-  sim.stormSettling = !sim.stormActive
-  if (sim.stormActive) sim.dust = Math.max(0.48, sim.dust)
-  ;(event.currentTarget as HTMLElement).classList.toggle('is-active', sim.stormActive)
-  showToast(sim.stormActive ? '区域尘暴模拟已启动，太阳能效率正在下降。' : '尘暴模拟结束，悬浮尘埃开始沉降。', !sim.stormActive)
-})
-
-query('#btn-orbit').addEventListener('click', () => setView('orbit'))
-query('#btn-surface').addEventListener('click', () => setView('surface'))
-
-query<HTMLButtonElement>('#btn-pause').addEventListener('click', (event) => {
-  colony.running = !colony.running
-  const button = event.currentTarget as HTMLButtonElement
-  button.textContent = colony.running ? 'Ⅱ' : '▶'
-  button.classList.toggle('is-paused', !colony.running)
-  showToast(colony.running ? '模拟继续运行。' : '模拟已暂停。', true)
-})
-
-query<HTMLSelectElement>('#ctrl-speed').addEventListener('change', (event) => {
-  colony.speed = Number((event.target as HTMLSelectElement).value)
-  sim.timeScale = colony.speed
-})
-
-function setView(mode: 'orbit' | 'surface') {
-  scene.setViewMode(mode)
-  query('#btn-orbit').classList.toggle('is-active', mode === 'orbit')
-  query('#btn-surface').classList.toggle('is-active', mode === 'surface')
-  if (mode === 'surface') sim.autoRotate = false
-}
-
-function showToast(message: string, success: boolean) {
-  window.clearTimeout(toastTimer)
-  toastMessage.textContent = message
-  toast.classList.toggle('is-warning', !success)
-  toast.classList.add('is-visible')
-  toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 3400)
-}
-
-function renderColony(forceLogs = false) {
-  query('#mission-sol').textContent = `SOL ${String(colony.sol).padStart(3, '0')}`
-  query('#population').textContent = String(colony.population).padStart(2, '0')
-  query('#morale').textContent = `${Math.round(colony.morale)}%`
-  query('#integrity').textContent = `${Math.round(colony.integrity)}%`
-  query<HTMLElement>('#morale-bar').style.width = `${colony.morale}%`
-  query<HTMLElement>('#integrity-bar').style.width = `${colony.integrity}%`
-  query('#material-stock').textContent = Math.floor(colony.resources.materials.value).toString()
-
-  const criticalResource = (Object.keys(RESOURCE_META) as ResourceKey[]).some(
-    (key) => colony.resources[key].value / colony.resources[key].capacity < 0.16,
-  )
-  const colonyStatus = query('#colony-status')
-  colonyStatus.textContent = criticalResource ? '资源告警' : sim.dust > 0.72 ? '尘暴模式' : '运行稳定'
-  colonyStatus.classList.toggle('status-chip--warning', criticalResource || sim.dust > 0.72)
-  colonyStatus.classList.toggle('status-chip--good', !criticalResource && sim.dust <= 0.72)
-
-  ;(Object.keys(RESOURCE_META) as ResourceKey[]).forEach((key) => {
-    const resource = colony.resources[key]
-    const meta = RESOURCE_META[key]
-    const percentage = (resource.value / resource.capacity) * 100
-    query(`#resource-${key}`).textContent = `${Math.floor(resource.value)}${meta.unit}`
-    const bar = query<HTMLElement>(`#resource-bar-${key}`)
-    bar.style.width = `${percentage}%`
-    bar.classList.toggle('is-low', percentage < 22)
-    const rate = query(`#resource-rate-${key}`)
-    const prefix = resource.rate > 0 ? '+' : ''
-    rate.textContent = `${prefix}${resource.rate.toFixed(1)}`
-    rate.classList.toggle('is-positive', resource.rate > 0.04)
-    rate.classList.toggle('is-negative', resource.rate < -0.04)
+  simulation.stormActive = !simulation.stormActive
+  simulation.stormSettling = !simulation.stormActive
+  if (simulation.stormActive) simulation.dust = Math.max(0.5, simulation.dust)
+  ;(event.currentTarget as HTMLButtonElement).classList.toggle('is-active', simulation.stormActive)
+  handleEvent({
+    tone: simulation.stormActive ? 'warning' : 'success',
+    message: simulation.stormActive
+      ? '区域尘暴增强：能见度下降，请降低车速。'
+      : '尘暴开始消散，地表能见度逐步恢复。',
   })
+})
 
-  BUILDINGS.forEach((building) => {
-    query(`#count-${building.key}`).textContent = `×${colony.buildings[building.key]}`
-  })
+query('#btn-lights').addEventListener('click', (event) => {
+  const active = rover.toggleLights()
+  ;(event.currentTarget as HTMLButtonElement).classList.toggle('is-active', active)
+  handleEvent({ tone: 'info', message: active ? '前向照明灯已开启。' : '前向照明灯已关闭。' })
+})
 
-  const level = getColonyLevel(colony)
-  const milestone = Math.min(100, level * 14)
-  query('#milestone-percent').textContent = `${milestone}%`
-  query<HTMLElement>('#milestone-bar').style.width = `${milestone}%`
-  query('#milestone-copy').textContent = getMilestoneCopy()
+query('#btn-reset').addEventListener('click', () => {
+  rover.resetPosition()
+  handleEvent({ tone: 'info', message: '小车已返回勘探起点。' })
+})
 
-  const expeditionState = query('#expedition-state')
-  expeditionState.textContent =
-    colony.expeditionCooldown > 0 ? `整备 ${colony.expeditionCooldown.toFixed(1)} Sol` : '可执行'
-  query<HTMLButtonElement>('#btn-expedition').disabled = colony.expeditionCooldown > 0
+query<HTMLSelectElement>('#speed-select').addEventListener('change', (event) => {
+  simulation.timeScale = Number((event.target as HTMLSelectElement).value)
+})
 
-  query('#supply-state').textContent = colony.supplyAvailable ? '窗口开放' : '等待窗口'
-  query<HTMLButtonElement>('#btn-supply').disabled = !colony.supplyAvailable
-
-  if (forceLogs || colony.logs[0]?.id !== lastRenderedLog) {
-    lastRenderedLog = colony.logs[0]?.id ?? 0
-    logList.innerHTML = colony.logs
-      .slice(0, 4)
-      .map(
-        (log) => `
-          <div class="log-item log-item--${log.tone}">
-            <time>${log.time}</time>
-            <i></i>
-            <p>${log.message}</p>
-          </div>
-        `,
-      )
-      .join('')
+document.querySelectorAll<HTMLButtonElement>('[data-control]').forEach((button) => {
+  const control = button.dataset.control as DriveControl
+  const activate = (event: Event) => {
+    event.preventDefault()
+    rover.setControl(control, true)
+    button.classList.add('is-active')
   }
+  const deactivate = (event: Event) => {
+    event.preventDefault()
+    rover.setControl(control, false)
+    button.classList.remove('is-active')
+  }
+  button.addEventListener('pointerdown', activate)
+  button.addEventListener('pointerup', deactivate)
+  button.addEventListener('pointerleave', deactivate)
+  button.addEventListener('pointercancel', deactivate)
+})
+
+function handleEvent(event: RoverEvent) {
+  events.unshift({ ...event, time: formatSolHour(simulation.solHour) })
+  events.splice(5)
+  renderEvents()
+  showToast(event)
 }
 
-function getMilestoneCopy(): string {
-  if (colony.buildings.extractor === 0) return '建造冰层提取站，使基地获得稳定水源。'
-  if (colony.buildings.lab === 0) return '部署火星科研站，启动原位资源研究。'
-  if (getHabitatCapacity(colony) < 10) return '扩建居住舱，为下一批拓荒者做好准备。'
-  return '基地已具备自持能力：继续扩大科研与生产网络。'
+function renderEvents() {
+  query('#event-list').innerHTML = events
+    .map(
+      (event) => `
+        <div class="event event--${event.tone}">
+          <time>${event.time}</time><i></i><p>${event.message}</p>
+        </div>
+      `,
+    )
+    .join('')
+}
+
+function showToast(event: RoverEvent) {
+  window.clearTimeout(toastTimer)
+  const toast = query('#toast')
+  query('#toast-message').textContent = event.message
+  toast.className = `toast toast--${event.tone} is-visible`
+  toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 3200)
+}
+
+function renderTelemetry(data: RoverTelemetry) {
+  query('#speed').textContent = data.speed.toFixed(1)
+  query<HTMLElement>('#speed-bar').style.width = `${Math.min(100, (data.speed / 16) * 100)}%`
+  query('#heading').textContent = `${String(Math.round(data.heading)).padStart(3, '0')}°`
+  query('#compass-heading').textContent = `${String(Math.round(data.heading)).padStart(3, '0')}°`
+  query('#slope').textContent = `${data.slope >= 0 ? '+' : ''}${data.slope.toFixed(1)}°`
+  query('#distance').textContent = `${data.distance.toFixed(1)} m`
+  query('#battery').textContent = `${Math.round(data.battery)}%`
+  query('#coordinate').textContent = `${data.z >= 0 ? 'N' : 'S'} ${Math.abs(data.z).toFixed(1)} · ${data.x >= 0 ? 'E' : 'W'} ${Math.abs(data.x).toFixed(1)}`
+  query('#drive-status').textContent = data.speed > 0.2 ? '行驶中' : '待机'
+
+  const armLabels: Record<RoverTelemetry['armState'], string> = {
+    standby: '待命',
+    tracking: '目标锁定',
+    collecting: '夹取中',
+    secured: '样本已密封',
+  }
+  query('#arm-state').textContent = armLabels[data.armState]
+  query('#arm-panel').classList.toggle('is-active', data.armState === 'collecting')
+
+  if (data.target) {
+    query('#scanner-status').textContent = '已锁定'
+    query('#scan-formula').textContent = data.target.formula
+    query('#sample-name').textContent = data.target.name
+    query('#sample-composition').textContent = data.target.composition
+    query('#sample-distance').textContent = `${data.targetDistance.toFixed(1)} m`
+    query('#sample-range').textContent = data.targetDistance <= 4.2 ? '可采集' : '距离过远'
+    query('#target-distance').textContent = `TARGET ${data.targetDistance.toFixed(1)} M`
+    query('#crosshair').classList.add('has-target')
+    query<HTMLButtonElement>('#btn-collect').disabled =
+      data.targetDistance > 4.2 || data.armState === 'collecting'
+  } else {
+    query('#scanner-status').textContent = '就绪'
+    query('#scan-formula').textContent = '?'
+    query('#sample-name').textContent = '未锁定'
+    query('#sample-composition').textContent = '按下扫描按钮，分析 34 m 范围内的矿物。'
+    query('#sample-distance').textContent = '—'
+    query('#sample-range').textContent = '≤ 4.2 m'
+    query('#target-distance').textContent = 'NO TARGET'
+    query('#crosshair').classList.remove('has-target')
+    query<HTMLButtonElement>('#btn-collect').disabled = true
+  }
+
+  if (data.storage.length !== lastStorageCount) {
+    lastStorageCount = data.storage.length
+    query('#storage-count').textContent = `${data.storage.length} / 6`
+    document.querySelectorAll<HTMLElement>('.storage-slot').forEach((slot, index) => {
+      const sample = data.storage[index]
+      slot.classList.toggle('is-filled', Boolean(sample))
+      slot.querySelector('b')!.textContent = sample ? sample.formula : '空'
+      if (sample) slot.style.setProperty('--sample-color', `#${sample.color.toString(16).padStart(6, '0')}`)
+    })
+  }
 }
 
 function query<T extends Element = HTMLElement>(selector: string): T {
@@ -387,33 +335,31 @@ function query<T extends Element = HTMLElement>(selector: string): T {
   return element
 }
 
-let last = performance.now()
-let renderAccumulator = 0
+let previous = performance.now()
+let renderTimer = 0
 
 function frame(now: number) {
-  const dt = Math.min(0.05, (now - last) / 1000)
-  last = now
+  const dt = Math.min(0.05, (now - previous) / 1000)
+  previous = now
+  const telemetry = tickState(simulation, dt)
 
-  const telemetry = tickState(sim, colony.running ? dt : 0)
-  const daylight = Math.max(0, Math.cos(((sim.solHour - 12) / 12) * Math.PI))
-  tickColony(colony, dt, sim.dust, daylight)
-
-  query('#mission-time').textContent = formatSolHour(sim.solHour)
+  query('#clock').textContent = formatSolHour(simulation.solHour)
   query('#env-temp').textContent = `${telemetry.temperatureC.toFixed(0)}°C`
+  query('#env-pressure').textContent = `${telemetry.pressurePa.toFixed(0)} Pa`
   query('#env-wind').textContent = `${telemetry.windMs.toFixed(1)} m/s`
   query('#env-rad').textContent = `${telemetry.radiationMsv.toFixed(2)} mSv`
-  query('#env-dust').textContent = `${Math.round(sim.dust * 100)}%`
 
-  renderAccumulator += dt
-  if (renderAccumulator > 0.18) {
-    renderColony()
-    renderAccumulator = 0
+  rover.update(simulation, dt)
+  const asyncEvent = rover.consumeEvent()
+  if (asyncEvent) handleEvent(asyncEvent)
+
+  renderTimer += dt
+  if (renderTimer > 0.08) {
+    renderTelemetry(rover.getTelemetry())
+    renderTimer = 0
   }
-
-  scene.setColonyLevel(getColonyLevel(colony))
-  scene.update(sim, dt)
   requestAnimationFrame(frame)
 }
 
-renderColony(true)
+renderTelemetry(rover.getTelemetry())
 requestAnimationFrame(frame)
