@@ -9,6 +9,8 @@ export type SimState = {
   cameraDistance: number
   autoRotate: boolean
   stormActive: boolean
+  /** When true, dust slowly settles after a storm ends */
+  stormSettling: boolean
 }
 
 export type Telemetry = {
@@ -30,6 +32,7 @@ export function createInitialState(): SimState {
     cameraDistance: 4.2,
     autoRotate: true,
     stormActive: false,
+    stormSettling: false,
   }
 }
 
@@ -39,9 +42,13 @@ export function tickState(state: SimState, dt: number): Telemetry {
   state.solHour = (state.solHour + dt * hoursPerSecond) % 24
 
   if (state.stormActive) {
-    state.dust = Math.min(1, state.dust + dt * 0.08)
-  } else if (state.dust > 0.12) {
-    state.dust = Math.max(0.12, state.dust - dt * 0.02)
+    state.stormSettling = false
+    state.dust = Math.min(1, state.dust + dt * 0.12)
+  } else if (state.stormSettling) {
+    state.dust = Math.max(0.12, state.dust - dt * 0.035)
+    if (state.dust <= 0.121) {
+      state.stormSettling = false
+    }
   }
 
   return sampleTelemetry(state)

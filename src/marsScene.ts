@@ -72,10 +72,13 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
   sun.position.set(8, 2, 4)
   scene.add(sun)
 
-  const ambient = new THREE.AmbientLight(0x3a2218, 0.35)
+  const ambient = new THREE.AmbientLight(0x5a3428, 0.55)
   scene.add(ambient)
 
-  const rim = new THREE.DirectionalLight(0x6a8aaa, 0.45)
+  const fill = new THREE.HemisphereLight(0xffc9a0, 0x1a0c08, 0.55)
+  scene.add(fill)
+
+  const rim = new THREE.DirectionalLight(0x6a8aaa, 0.55)
   rim.position.set(-6, -1, -4)
   scene.add(rim)
 
@@ -85,9 +88,11 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
   const marsMat = new THREE.MeshStandardMaterial({
     map,
     bumpMap,
-    bumpScale: 0.045,
-    roughness: 0.92,
-    metalness: 0.05,
+    bumpScale: 0.055,
+    roughness: 0.88,
+    metalness: 0.04,
+    emissive: new THREE.Color(0x2a1008),
+    emissiveIntensity: 0.12,
   })
   const mars = new THREE.Mesh(marsGeo, marsMat)
   scene.add(mars)
@@ -131,16 +136,14 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
   scene.add(deimos)
 
   // Soft ground plane hint for surface mode (hidden by default)
-  const surfacePlate = new THREE.Mesh(
-    new THREE.CircleGeometry(2.4, 48),
-    new THREE.MeshStandardMaterial({
-      color: 0x8a4a2e,
-      roughness: 1,
-      metalness: 0,
-      transparent: true,
-      opacity: 0,
-    }),
-  )
+  const surfacePlateMat = new THREE.MeshStandardMaterial({
+    color: 0x8a4a2e,
+    roughness: 1,
+    metalness: 0,
+    transparent: true,
+    opacity: 0,
+  })
+  const surfacePlate = new THREE.Mesh(new THREE.CircleGeometry(2.4, 48), surfacePlateMat)
   surfacePlate.rotation.x = -Math.PI / 2
   surfacePlate.position.y = -1.02
   scene.add(surfacePlate)
@@ -168,9 +171,15 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
     atmosphere.rotation.y = mars.rotation.y * 0.98
 
     atmoMat.uniforms.dust.value = state.dust
-    atmoMat.uniforms.intensity.value = 0.85 + state.dust * 0.9
-    dustMat.opacity = 0.04 + state.dust * 0.32
-    dustShell.scale.setScalar(1 + state.dust * 0.04)
+    atmoMat.uniforms.intensity.value = 0.85 + state.dust * 1.25
+    atmoMat.uniforms.glowColor.value.setRGB(
+      0.88 + state.dust * 0.12,
+      0.42 - state.dust * 0.12,
+      0.22 - state.dust * 0.08,
+    )
+    dustMat.opacity = 0.05 + state.dust * 0.48
+    dustMat.color.setRGB(0.78 + state.dust * 0.1, 0.38, 0.16)
+    dustShell.scale.setScalar(1 + state.dust * 0.06)
 
     dustSystem.update(dt, state.dust)
 
@@ -180,18 +189,24 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
     deimos.position.set(Math.cos(t * 0.18 + 1.2) * 2.6, Math.sin(t * 0.1) * 0.25, Math.sin(t * 0.18 + 1.2) * 2.6)
 
     controls.autoRotate = state.autoRotate && viewMode === 'orbit'
-    controls.minDistance = viewMode === 'surface' ? 1.12 : 1.55
-    controls.maxDistance = viewMode === 'surface' ? 2.2 : 12
+    controls.minDistance = viewMode === 'surface' ? 1.05 : 1.55
+    controls.maxDistance = viewMode === 'surface' ? 1.85 : 12
 
     if (viewMode === 'surface') {
-      surfacePlate.material.opacity = 0.35 + state.dust * 0.2
+      surfacePlateMat.opacity = 0.45 + state.dust * 0.25
+      atmosphere.visible = false
+      dustShell.visible = true
       scene.fog = new THREE.FogExp2(
-        new THREE.Color().setHSL(0.05, 0.55, 0.08 + state.dust * 0.06).getHex(),
-        0.12 + state.dust * 0.25,
+        new THREE.Color().setHSL(0.045, 0.62, 0.1 + state.dust * 0.08).getHex(),
+        0.22 + state.dust * 0.45,
       )
+      renderer.toneMappingExposure = 1.15 + state.dust * 0.15
     } else {
-      surfacePlate.material.opacity = 0
-      scene.fog = new THREE.FogExp2(0x1a0c08, 0.012 + state.dust * 0.02)
+      surfacePlateMat.opacity = 0
+      atmosphere.visible = true
+      dustShell.visible = true
+      scene.fog = new THREE.FogExp2(0x1a0c08, 0.01 + state.dust * 0.035)
+      renderer.toneMappingExposure = 1.05
     }
 
     // Soft camera distance target from slider
@@ -208,12 +223,17 @@ export function createMarsScene(canvas: HTMLCanvasElement): MarsScene {
   const setViewMode = (mode: 'orbit' | 'surface') => {
     viewMode = mode
     if (mode === 'surface') {
-      camera.position.set(0.15, 0.35, 1.35)
-      controls.target.set(0, 0.1, 0)
+      // Low skim above the limb — horizon fills the frame
+      camera.position.set(0.55, 0.72, 1.05)
+      controls.target.set(0.15, 0.35, 0)
       controls.autoRotate = false
+      controls.minDistance = 1.05
+      controls.maxDistance = 1.85
     } else {
       camera.position.set(0.8, 1.2, 4.2)
       controls.target.set(0, 0, 0)
+      controls.minDistance = 1.55
+      controls.maxDistance = 12
     }
     controls.update()
   }
@@ -278,7 +298,7 @@ function createDustParticles() {
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   const mat = new THREE.PointsMaterial({
     color: 0xd4a574,
-    size: 0.025,
+    size: 0.028,
     transparent: true,
     opacity: 0.35,
     depthWrite: false,
@@ -289,8 +309,8 @@ function createDustParticles() {
   return {
     points,
     update(dt: number, dust: number) {
-      mat.opacity = 0.12 + dust * 0.55
-      mat.size = 0.018 + dust * 0.04
+      mat.opacity = 0.15 + dust * 0.75
+      mat.size = 0.02 + dust * 0.07
       const pos = geo.attributes.position as THREE.BufferAttribute
       const arr = pos.array as Float32Array
       for (let i = 0; i < count; i++) {

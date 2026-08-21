@@ -131,6 +131,7 @@ ctrlHour.addEventListener('input', () => {
 ctrlDust.addEventListener('input', () => {
   state.dust = Number(ctrlDust.value)
   state.stormActive = false
+  state.stormSettling = false
   btnStorm.classList.remove('is-active')
   outDust.textContent = `${Math.round(state.dust * 100)}%`
 })
@@ -155,6 +156,8 @@ btnSurface.addEventListener('click', () => {
   scene.setViewMode('surface')
   btnSurface.classList.add('is-active')
   btnOrbit.classList.remove('is-active')
+  state.autoRotate = false
+  btnRotate.classList.remove('is-active')
 })
 
 btnRotate.addEventListener('click', () => {
@@ -165,9 +168,15 @@ btnRotate.addEventListener('click', () => {
 btnStorm.addEventListener('click', () => {
   state.stormActive = !state.stormActive
   btnStorm.classList.toggle('is-active', state.stormActive)
-  if (state.stormActive && state.dust < 0.35) {
-    state.dust = 0.35
-    ctrlDust.value = String(state.dust)
+  if (state.stormActive) {
+    state.stormSettling = false
+    if (state.dust < 0.45) {
+      state.dust = 0.45
+      ctrlDust.value = String(state.dust)
+      outDust.textContent = `${Math.round(state.dust * 100)}%`
+    }
+  } else {
+    state.stormSettling = state.dust > 0.12
   }
 })
 
