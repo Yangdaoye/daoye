@@ -11,7 +11,12 @@ export interface ScienceTarget {
   value: number
 }
 
-export function generateTargets(site: LandingSite, count = 6): ScienceTarget[] {
+export function generateTargets(
+  site: LandingSite,
+  count = 6,
+  originX = 0,
+  originY = 0,
+): ScienceTarget[] {
   const targets: ScienceTarget[] = []
   const kinds: ScienceTarget['kind'][] =
     site.id === 'jezero'
@@ -32,13 +37,17 @@ export function generateTargets(site: LandingSite, count = 6): ScienceTarget[] {
 
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2 + fbm(i, site.lat, 9) * 1.2
-    const r = 35 + fbm(i * 2, site.lon, 11) * 90 + (i % 3) * 20
+    // First two targets stay nearby for onboarding; others fan out
+    const r =
+      i < 2
+        ? 14 + fbm(i * 2, site.lon, 11) * 16
+        : 40 + fbm(i * 2, site.lon, 11) * 70 + (i % 3) * 14
     const kind = kinds[i % kinds.length]
     const namePool = labels[kind]
     targets.push({
       id: `t${i}`,
-      x: Math.cos(a) * r,
-      y: Math.sin(a) * r,
+      x: originX + Math.cos(a) * r,
+      y: originY + Math.sin(a) * r,
       label: namePool[i % namePool.length],
       kind,
       collected: false,
@@ -58,10 +67,14 @@ export interface MissionState {
   failed: boolean
 }
 
-export function createMission(site: LandingSite): MissionState {
+export function createMission(
+  site: LandingSite,
+  originX = 0,
+  originY = 0,
+): MissionState {
   return {
     site,
-    targets: generateTargets(site),
+    targets: generateTargets(site, 6, originX, originY),
     score: 0,
     objectivesDone: 0,
     messageLog: [{ t: 0, text: `着陆确认：${site.name}（${site.nameEn}）` }],

@@ -82,16 +82,17 @@ function startSim(siteId: SiteId) {
   phase = 'sim'
   const site = getSite(siteId)
   const terrain = new Terrain(site)
+  const landing = terrain.findLandingPad()
   const weatherSys = new WeatherSystem(site)
-  const rover = new Rover(terrain, 0, 0)
-  const mission = createMission(site)
+  const rover = new Rover(terrain, landing.x, landing.y)
+  const mission = createMission(site, landing.x, landing.y)
 
-  let simTime = SOL_SECONDS * 0.32 // start mid-morning
+  let simTime = SOL_SECONDS * 0.4 // ~09:36 LST — usable morning solar
   let timeScale = 10
   let running = true
   let last = performance.now()
-  let camX = 0
-  let camY = 0
+  let camX = landing.x
+  let camY = landing.y
 
   app.innerHTML = `
     <div class="sim">
@@ -188,9 +189,9 @@ function startSim(siteId: SiteId) {
     el.addEventListener('pointerup', off)
     el.addEventListener('pointerleave', off)
   }
-  const pad = app.querySelector('#mobile-pad')
-  if (pad) {
-    pad.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+  const mobilePad = app.querySelector('#mobile-pad')
+  if (mobilePad) {
+    mobilePad.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
       const k = btn.dataset.k
       if (k === 'throttle-up') bindPad(btn, () => (inputBoost.throttle = 1), () => (inputBoost.throttle = 0))
       if (k === 'steer-left') bindPad(btn, () => (inputBoost.steer = -1), () => (inputBoost.steer = 0))
@@ -268,6 +269,27 @@ function startSim(siteId: SiteId) {
       <dt>季节</dt><dd>${weather.seasonLabel}</dd>
     `
 
+    let bearingText = '—'
+    const open = missionState.targets.filter((t) => !t.collected)
+    if (open.length) {
+      let nearest = open[0]
+      let bestD = Infinity
+      for (const t of open) {
+        const d = Math.hypot(t.x - telem.x, t.y - telem.y)
+        if (d < bestD) {
+          bestD = d
+          nearest = t
+        }
+      }
+      const abs = Math.atan2(nearest.y - telem.y, nearest.x - telem.x)
+      let rel = ((abs - telem.heading) * 180) / Math.PI
+      while (rel > 180) rel -= 360
+      while (rel < -180) rel += 360
+      const dir =
+        Math.abs(rel) < 15 ? '正前方' : rel > 0 ? `右 ${fmt(rel, 0)}°` : `左 ${fmt(-rel, 0)}°`
+      bearingText = `${dir} · ${fmt(bestD, 0)} m`
+    }
+
     app.querySelector('#rov-kv')!.innerHTML = `
       <dt>速度</dt><dd>${fmt(telem.speedMs, 2)} m/s</dd>
       <dt>坡度</dt><dd>${fmt(telem.slopeDeg, 1)}°</dd>
@@ -277,6 +299,7 @@ function startSim(siteId: SiteId) {
       <dt>行驶里程</dt><dd>${fmt(telem.distanceM, 0)} m</dd>
       <dt>样本仓</dt><dd>${telem.samplesHeld} / 8</dd>
       <dt>牵引力</dt><dd>${fmt(telem.traction * 100, 0)}%</dd>
+      <dt>最近目标方位</dt><dd>${bearingText}</dd>
     `
 
     const pill = app.querySelector('#status-pill')!
@@ -347,7 +370,9 @@ function startSim(siteId: SiteId) {
 
       if (input.sample) {
         const hit = tryCollectNear(mission, rover.x, rover.y, 7)
-        if (!hit) {
+        if (hit) {
+          rover.storeSample()
+        } else {
           mission.messageLog.unshift({
             t: now,
             text: '附近无科学目标（靠近黄色标记后按 F）',

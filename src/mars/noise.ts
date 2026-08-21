@@ -64,7 +64,7 @@ export function craterField(
       const t = d / r
       const bowl = -Math.cos(Math.min(t, 1) * Math.PI) * 0.5 - 0.5
       const rim = Math.exp(-(((t - 1) * 6) ** 2)) * 0.35
-      h += (bowl * (1 - Math.min(t, 1)) + rim) * r * 0.35
+      h += (bowl * (1 - Math.min(t, 1)) + rim) * r * 0.12
     }
   }
   return h

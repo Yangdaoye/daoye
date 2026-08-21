@@ -115,7 +115,7 @@ export class Rover {
     const rtgW = RTG_POWER_W
     const powerIn = solarW + rtgW
 
-    const driving = Math.abs(input.throttle) > 0.05 && !this.stuck
+    const driving = Math.abs(input.throttle) > 0.05 && (!this.stuck || input.throttle < -0.05)
     let powerOut = IDLE_POWER_W
     // Thermal control load rises in extreme cold / heat
     const thermalLoad = Math.max(0, (-20 - weather.temperatureC) * 0.9) + Math.max(0, weather.temperatureC - 5) * 1.2
@@ -152,38 +152,39 @@ export class Rover {
       return this.telemetry(powerIn, powerOut, solarW, rtgW)
     }
 
-    if (ground.slopeDeg > MAX_SAFE_SLOPE_DEG + 8) {
+    const reversing = input.throttle < -0.05
+    if (ground.slopeDeg > MAX_SAFE_SLOPE_DEG + 8 && !reversing) {
       this.stuck = true
-      this.hazard = `坡度 ${ground.slopeDeg.toFixed(0)}° 超出稳定极限`
+      this.hazard = `坡度 ${ground.slopeDeg.toFixed(0)}° 超出稳定极限 — 按 S 倒车脱离`
     } else if (ground.slopeDeg > MAX_SAFE_SLOPE_DEG) {
       this.hazard = `警告：坡度 ${ground.slopeDeg.toFixed(0)}° 接近极限`
       traction *= 0.4
+      if (reversing) this.stuck = false
     } else if (weather.stormActive && weather.stormSeverity > 0.6) {
       this.hazard = '沙尘暴：能见度与太阳能下降'
+      if (ground.slopeDeg < MAX_SAFE_SLOPE_DEG - 2) this.stuck = false
     } else {
       this.hazard = null
       if (ground.slopeDeg < MAX_SAFE_SLOPE_DEG - 2) this.stuck = false
     }
 
+    // Allow reverse escape even when flagged stuck
+    const canMove = !this.stuck || reversing
     this.heading += input.steer * 1.6 * dt
     let speed = Math.hypot(this.vx, this.vy)
-    if (this.stuck || input.brake) {
+    if ((!canMove && !reversing) || input.brake) {
       speed = Math.max(0, speed - brakeDecel * dt)
     } else if (driving && this.batteryWh > 20) {
-      speed = Math.min(maxSpeed, speed + accel * Math.abs(input.throttle) * dt)
-      if (input.throttle < 0) speed = Math.min(maxSpeed * 0.45, speed)
+      const cap = reversing ? maxSpeed * 0.45 : maxSpeed
+      speed = Math.min(cap, speed + accel * Math.abs(input.throttle) * dt)
     } else {
       speed = Math.max(0, speed - 0.6 * dt)
     }
 
-    const dir = input.throttle < 0 ? this.heading + Math.PI : this.heading
-    this.vx = Math.cos(dir) * speed * Math.sign(Math.abs(input.throttle) > 0.05 || speed > 0.05 ? 1 : 0)
-    this.vy = Math.sin(dir) * speed * Math.sign(Math.abs(input.throttle) > 0.05 || speed > 0.05 ? 1 : 0)
-
-    // Prefer velocity along heading
-    if (!this.stuck) {
-      const moveDir = input.throttle < -0.05 ? this.heading + Math.PI : this.heading
-      const spd = speed * (input.throttle < -0.05 ? 1 : input.throttle > 0.05 ? 1 : speed > 0.1 ? 1 : 0)
+    if (canMove && (Math.abs(input.throttle) > 0.05 || speed > 0.05)) {
+      const moveDir = reversing ? this.heading + Math.PI : this.heading
+      const spd =
+        Math.abs(input.throttle) > 0.05 ? speed : speed > 0.1 ? speed * 0.92 : 0
       this.vx = Math.cos(moveDir) * spd
       this.vy = Math.sin(moveDir) * spd
     } else {
@@ -194,14 +195,17 @@ export class Rover {
     const nx = this.x + this.vx * dt
     const ny = this.y + this.vy * dt
     const next = this.terrain.sample(nx, ny)
-    if (next.slopeDeg < MAX_SAFE_SLOPE_DEG + 12) {
+    // Forward blocked on extreme slopes; reverse always attempted at reduced speed
+    const slopeLimit = reversing ? MAX_SAFE_SLOPE_DEG + 22 : MAX_SAFE_SLOPE_DEG + 12
+    if (next.slopeDeg < slopeLimit) {
       const dist = Math.hypot(nx - this.x, ny - this.y)
       this.x = nx
       this.y = ny
       this.distanceM += dist
-    } else {
+      if (reversing && next.slopeDeg < MAX_SAFE_SLOPE_DEG) this.stuck = false
+    } else if (!reversing) {
       this.stuck = true
-      this.hazard = '地形障碍：无法前进'
+      this.hazard = '地形障碍：无法前进 — 尝试转向或倒车'
     }
 
     // Thermal
@@ -211,17 +215,22 @@ export class Rover {
     this.cabinTempC += (cabinTarget - this.cabinTempC) * Math.min(1, dt * 0.05)
 
     this.sampleCooldown = Math.max(0, this.sampleCooldown - dt)
-    if (input.sample && this.sampleCooldown <= 0 && this.samplesHeld < 8) {
-      this.samplesHeld += 1
-      this.sampleCooldown = 4
-      this.status = '样本封存完成'
-    } else if (!this.hazard) {
+    if (!this.hazard) {
       this.status = driving ? '行驶中' : weather.stormActive ? '沙尘监视模式' : '待机'
     } else {
       this.status = this.hazard
     }
 
     return this.telemetry(powerIn, powerOut, solarW, rtgW)
+  }
+
+  /** Called by mission when a science target is secured. */
+  storeSample(): boolean {
+    if (this.samplesHeld >= 8 || this.sampleCooldown > 0) return false
+    this.samplesHeld += 1
+    this.sampleCooldown = 4
+    this.status = '样本封存完成'
+    return true
   }
 
   private telemetry(powerIn: number, powerOut: number, solarW: number, rtgW: number): RoverTelemetry {

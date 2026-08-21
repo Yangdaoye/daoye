@@ -125,13 +125,13 @@ export class MarsRenderer {
     ctx.fillStyle = haze
     ctx.fillRect(0, horizon - 40, cssW, 140)
 
-    const scale = 4.2 // px per meter
+    const scale = 5.5 // px per meter
     const camX = frame.camX
     const camY = frame.camY
 
-    // Terrain tiles
-    const viewR = Math.hypot(cssW, cssH) / scale + 20
-    const step = 8
+    // Terrain tiles — finer grid for less blocky surface
+    const viewR = Math.hypot(cssW, cssH) / scale + 16
+    const step = 4
     const minX = Math.floor((camX - viewR) / step) * step
     const maxX = camX + viewR
     const minY = Math.floor((camY - viewR) / step) * step
@@ -144,27 +144,24 @@ export class MarsRenderer {
         const sample = terrain.sample(wx, wy)
         const n = terrain.normal(wx, wy)
         const sunDir = { x: 0.45, y: -0.3, z: 0.84 }
-        const shade = Math.max(0.25, n.nx * sunDir.x + n.ny * sunDir.y + n.nz * sunDir.z)
+        const shade = Math.max(0.28, n.nx * sunDir.x + n.ny * sunDir.y + n.nz * sunDir.z)
         const col = groundColor(sample.grit, sample.height, shade, sample.isSand, sample.isRock)
-        // Dust storm washes color
         const wash = weather.stormSeverity * 0.35
         const r = lerp(col[0], 160, wash)
         const g = lerp(col[1], 110, wash)
         const b = lerp(col[2], 70, wash)
 
         const sx = (wx - camX) * scale + cssW / 2
-        const sy = (wy - camY) * scale + cssH * 0.62 - sample.height * 0.35
+        const sy = (wy - camY) * scale + cssH * 0.62 - sample.height * 0.45
 
-        // Skip offscreen
-        if (sx < -20 || sy < horizon - 10 || sx > cssW + 20 || sy > cssH + 20) continue
+        if (sx < -16 || sy < horizon - 10 || sx > cssW + 16 || sy > cssH + 16) continue
 
-        ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`
-        ctx.fillRect(sx, sy, step * scale + 1.2, step * scale + 1.2)
+        ctx.fillStyle = `rgb(${r | 0},${g | 0},${b | 0})`
+        ctx.fillRect(sx, sy, step * scale + 0.8, step * scale + 0.8)
 
-        // Subtle rock flecks
         if (sample.isRock) {
-          ctx.fillStyle = `rgba(40,25,18,${0.35 + sample.grit * 0.3})`
-          ctx.fillRect(sx + 2, sy + 2, 2.5, 2.5)
+          ctx.fillStyle = `rgba(40,25,18,${0.3 + sample.grit * 0.28})`
+          ctx.fillRect(sx + 1.5, sy + 1.5, 2.2, 2.2)
         }
       }
     }
@@ -172,7 +169,7 @@ export class MarsRenderer {
     // Science markers
     for (const t of targets) {
       const sx = (t.x - camX) * scale + cssW / 2
-      const sy = (t.y - camY) * scale + cssH * 0.62 - terrain.heightAt(t.x, t.y) * 0.35
+      const sy = (t.y - camY) * scale + cssH * 0.62 - terrain.heightAt(t.x, t.y) * 0.45
       if (sx < 0 || sy < horizon || sx > cssW || sy > cssH) continue
       const pulse = 0.5 + 0.5 * Math.sin(time * 0.004 + t.x)
       ctx.beginPath()
@@ -191,37 +188,43 @@ export class MarsRenderer {
 
     // Rover
     const rx = (rover.x - camX) * scale + cssW / 2
-    const ry = (rover.y - camY) * scale + cssH * 0.62 - terrain.heightAt(rover.x, rover.y) * 0.35
+    const ry = (rover.y - camY) * scale + cssH * 0.62 - terrain.heightAt(rover.x, rover.y) * 0.45
     ctx.save()
     ctx.translate(rx, ry)
     ctx.rotate(rover.heading + Math.PI / 2)
-    // body
     ctx.fillStyle = '#c5ccd4'
     ctx.strokeStyle = '#2a2420'
     ctx.lineWidth = 1.5
     ctx.beginPath()
-    ctx.roundRect(-10, -14, 20, 28, 3)
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(-11, -16, 22, 32, 3)
+    } else {
+      ctx.rect(-11, -16, 22, 32)
+    }
     ctx.fill()
     ctx.stroke()
-    // mast
     ctx.fillStyle = '#8a9098'
-    ctx.fillRect(-2, -22, 4, 10)
+    ctx.fillRect(-2, -24, 4, 10)
     ctx.fillStyle = '#d8dee6'
-    ctx.fillRect(-5, -26, 10, 5)
-    // wheels
+    ctx.fillRect(-5, -28, 10, 5)
     ctx.fillStyle = '#3a342f'
-    for (const [wx, wy] of [[-12, -10], [8, -10], [-12, 8], [8, 8], [-12, -1], [8, -1]]) {
-      ctx.fillRect(wx, wy, 5, 8)
+    for (const [wx, wy] of [
+      [-13, -11],
+      [8, -11],
+      [-13, 8],
+      [8, 8],
+      [-13, -1],
+      [8, -1],
+    ]) {
+      ctx.fillRect(wx, wy, 5, 9)
     }
-    // solar / RTG hint
     ctx.fillStyle = '#2c4a6e'
-    ctx.fillRect(-8, -6, 16, 10)
+    ctx.fillRect(-8, -6, 16, 11)
     ctx.restore()
 
-    // Heading ring
     ctx.beginPath()
-    ctx.arc(rx, ry, 22, 0, Math.PI * 2)
-    ctx.strokeStyle = 'rgba(255,220,160,0.25)'
+    ctx.arc(rx, ry, 24, 0, Math.PI * 2)
+    ctx.strokeStyle = 'rgba(255,220,160,0.28)'
     ctx.lineWidth = 1
     ctx.stroke()
 
