@@ -50,6 +50,7 @@ export class MarsScene {
     this._camOrbit = new THREE.Vector3(0, 1.4, 6.2)
     this._camLand = new THREE.Vector3(0.35, 0.55, 2.85)
     this._camTarget = this._camOrbit.clone()
+    this._camTransition = 0
 
     this._onResize = () => this.resize()
     window.addEventListener('resize', this._onResize)
@@ -60,10 +61,10 @@ export class MarsScene {
     this.sunLight.position.set(8, 2, 4)
     this.scene.add(this.sunLight)
 
-    const ambient = new THREE.AmbientLight(0x3a2418, 0.35)
-    this.scene.add(ambient)
+    this.ambient = new THREE.AmbientLight(0x4a3020, 0.55)
+    this.scene.add(this.ambient)
 
-    const rim = new THREE.DirectionalLight(0x6a90ff, 0.25)
+    const rim = new THREE.DirectionalLight(0x8899cc, 0.4)
     rim.position.set(-6, -1, -4)
     this.scene.add(rim)
 
@@ -188,6 +189,7 @@ export class MarsScene {
 
   setMode(mode) {
     this.mode = mode
+    this._camTransition = 1.4
     if (mode === 'land') {
       this._camTarget.copy(this._camLand)
       this.controls.autoRotate = false
@@ -199,6 +201,7 @@ export class MarsScene {
       this.controls.minDistance = 2.4
       this.controls.maxDistance = 14
     }
+    this.controls.target.set(0, 0, 0)
   }
 
   setMoonsVisible(visible) {
@@ -227,9 +230,11 @@ export class MarsScene {
     this.root.rotation.z = THREE.MathUtils.degToRad(25.19) * 0.35
 
     const elev = telemetry.sunElevation
-    const sunStrength = THREE.MathUtils.clamp((elev + 8) / 55, 0.08, 1)
-    this.sunLight.intensity = 0.55 + sunStrength * 2.1
+    const sunStrength = THREE.MathUtils.clamp((elev + 8) / 55, 0.12, 1)
+    this.sunLight.intensity = 0.7 + sunStrength * 2.0
     this.sunLight.color.setHSL(0.08, 0.35 + sunStrength * 0.2, 0.72)
+    // Keep Mars readable at night with starlight / earthshine-style fill.
+    this.ambient.intensity = 0.35 + (1 - sunStrength) * 0.35
 
     const angle = ((sim.hour / 24.66) * Math.PI * 2) - Math.PI / 2
     this.sunLight.position.set(Math.cos(angle) * 10, Math.sin(elev * 0.02) * 4 + 1.5, Math.sin(angle) * 10)
@@ -241,16 +246,20 @@ export class MarsScene {
       0.05,
     )
     this.dustGlow.intensity = dust * 1.8
-    this.scene.fog.density = 0.01 + dust * 0.035
+    this.scene.fog.density = 0.008 + dust * 0.028
 
-    this.renderer.toneMappingExposure = 0.85 + sunStrength * 0.35 - dust * 0.15
+    this.renderer.toneMappingExposure = 0.95 + sunStrength * 0.3 - dust * 0.12
   }
 
   update(dt, simSpeed) {
-    this.controls.update()
+    if (this._camTransition > 0) {
+      this._camTransition = Math.max(0, this._camTransition - dt)
+      const t = 1 - Math.pow(0.0008, dt)
+      this.camera.position.lerp(this._camTarget, t)
+      this.controls.target.lerp(new THREE.Vector3(0, 0, 0), t)
+    }
 
-    // Ease camera toward mode target when switching.
-    this.camera.position.lerp(this._camTarget, 1 - Math.pow(0.001, dt))
+    this.controls.update()
 
     const orbitFactor = Math.max(0.15, simSpeed)
     this._phobosAngle += dt * 0.55 * Math.min(orbitFactor, 8)

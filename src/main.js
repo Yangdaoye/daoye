@@ -97,6 +97,10 @@ function setMode(mode) {
   sim.mode = mode
   scene.setMode(mode)
   els.modeLabel.textContent = mode === 'land' ? '模式：降落视角' : '模式：轨道巡航'
+  els.btnLand.classList.toggle('btn-primary', mode === 'land')
+  els.btnLand.classList.toggle('btn-ghost', mode !== 'land')
+  els.btnOrbit.classList.toggle('btn-primary', mode === 'orbit')
+  els.btnOrbit.classList.toggle('btn-ghost', mode !== 'orbit')
 }
 
 function syncDustLayer() {
@@ -136,6 +140,7 @@ els.speedLabel.textContent = `×${SPEEDS[sim.speedIndex]}`
 els.latLabel.textContent = formatLat(sim.latitude)
 els.siteHint.textContent = `着陆点：${sim.nearestSite().name}`
 scene.setDust(sim.dust / 100)
+setMode('orbit')
 
 let last = performance.now()
 let frames = 0

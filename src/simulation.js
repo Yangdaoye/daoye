@@ -13,7 +13,7 @@ const SPEEDS = [0, 1, 8, 64, 512]
 export class MarsSimulation {
   constructor() {
     this.sol = 0
-    this.hour = 6
+    this.hour = 9.5
     this.speedIndex = 1
     this.latitude = 18
     this.dust = 12
