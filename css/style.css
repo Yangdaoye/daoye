@@ -347,6 +347,14 @@ html.embed h1 {
   margin-bottom: 8px;
 }
 
+.embed-help a {
+  color: #e4c36b;
+}
+
+.embed-help ul {
+  padding-left: 20px;
+}
+
 .embed-help button {
   font-family: inherit;
   cursor: pointer;
