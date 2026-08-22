@@ -2,22 +2,28 @@
   const box = document.getElementById("lan-urls");
   if (!box) return;
 
+  function render(data) {
+    const bits = [];
+    if (data && data.publicUrl) {
+      bits.push(
+        `<p><strong>任意电脑现在打开：</strong> <a href="${data.publicUrl}/" target="_blank" rel="noreferrer">${data.publicUrl}/</a></p>`
+      );
+    }
+    if (data && data.urls && data.urls.length) {
+      bits.push("<p>家里同一 WiFi 也可以打开：</p><ul>");
+      data.urls.forEach((url) => {
+        bits.push(`<li><a href="${url}" target="_blank" rel="noreferrer">${url}</a></li>`);
+      });
+      bits.push("</ul>");
+    }
+    bits.push(
+      "<p>另一台电脑<strong>不要</strong>输入 <code>127.0.0.1</code>，那是“这台电脑自己”。家里请用 <code>192.168.</code> 开头的地址；现在也可以直接用上面的任意电脑链接。</p>"
+    );
+    box.innerHTML = bits.join("");
+  }
+
   fetch("/lan.json")
     .then((res) => (res.ok ? res.json() : null))
-    .then((data) => {
-      if (!data || !data.urls || !data.urls.length) {
-        box.innerHTML =
-          "请在这台已连 WiFi 的电脑上运行 <code>开始局域网.bat</code>（Windows）或 <code>./start-lan.sh</code>，然后把显示的地址发给同一 WiFi 里的其他电脑。";
-        return;
-      }
-      box.innerHTML =
-        "<p>同一 WiFi 下，其他电脑或手机打开：</p><ul>" +
-        data.urls
-          .map((url) => `<li><a href="${url}" target="_blank" rel="noreferrer">${url}</a></li>`)
-          .join("") +
-        "</ul>";
-    })
-    .catch(() => {
-      box.textContent = "当前是直接打开文件。要给同一 WiFi 的其他电脑玩，请运行 开始局域网.bat 或 node scripts/serve.js。";
-    });
+    .then((data) => render(data || {}))
+    .catch(() => render({}));
 })();

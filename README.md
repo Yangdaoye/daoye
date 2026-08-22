@@ -6,26 +6,26 @@
 
 直接用浏览器打开 `index.html`。无需安装依赖。
 
-## 同一 WiFi 下其他电脑玩
+## 其他电脑打开
 
-在**已经连上 WiFi 的那台电脑**上打开本文件夹，然后：
+`127.0.0.1` 只能在本机打开。云端电脑的 `172.` 地址也不在你家 WiFi 里。
 
-- Windows：双击 `开始局域网.bat`，不要关窗口
-- macOS / Linux：运行 `./start-lan.sh`
+**现在任意电脑打开：**
 
-窗口里会打印类似：
+https://joins-dennis-specified-adventure.trycloudflare.com/
 
-```
-同一 WiFi：http://192.168.1.8:8765/
-```
+这个临时链接只在本次运行期间有效。
 
-其他电脑或手机连**同一个 WiFi**，浏览器输入这个地址就能玩。
+**在家里用同一 WiFi：**
 
-也可以手动运行：
+1. 在已经连 WiFi 的那台电脑上双击 `开始局域网.bat`
+2. 看窗口里 `192.168.` 开头的地址
+3. 另一台电脑连同一个 WiFi，输入那个地址
+4. 不要输入 `127.0.0.1`
 
-```bash
-node scripts/serve.js
-```
+也可以运行 `node scripts/serve.js`。若打不开，在 Windows 防火墙里允许 8765 端口。
+
+长期公开地址可开 GitHub Pages：`https://yangdaoye.github.io/daoye/`（需在仓库 Settings → Pages 里允许 GitHub Actions 部署）。
 
 - **开始**：点「开始上课」，或按 `Enter` / 空格
 - **移动**：`W A S D`、方向键，或画面下方方向键

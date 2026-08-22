@@ -19,13 +19,22 @@ const TYPES = {
   ".txt": "text/plain; charset=utf-8",
 };
 
+function publicUrl() {
+  if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, "");
+  const file = path.join(ROOT, ".public-url");
+  if (fs.existsSync(file)) {
+    return fs.readFileSync(file, "utf8").trim().replace(/\/$/, "");
+  }
+  return "";
+}
+
 function lanUrls(port) {
   const urls = [];
   const nets = os.networkInterfaces();
   for (const list of Object.values(nets)) {
     for (const net of list || []) {
       const family = net.family === 4 ? "IPv4" : net.family;
-      if (family === "IPv4" && !net.internal) {
+      if (family === "IPv4" && !net.internal && !net.address.startsWith("172.")) {
         urls.push(`http://${net.address}:${port}/`);
       }
     }
@@ -55,7 +64,8 @@ function createServer() {
         JSON.stringify({
           port: PORT,
           urls: lanUrls(PORT),
-          hint: "同一 WiFi 下，其他电脑用这些地址打开",
+          publicUrl: publicUrl(),
+          hint: "其他电脑请优先打开 publicUrl；127.0.0.1 只能在本机用",
         }),
         TYPES[".json"]
       );
@@ -86,11 +96,13 @@ function printBanner() {
   console.log("");
   console.log("校园坦克大战 · 局域网已打开");
   console.log(`本机：    http://127.0.0.1:${PORT}/`);
+  const pub = publicUrl();
+  if (pub) console.log(`任意电脑：${pub}/`);
   if (urls.length) {
     urls.forEach((url) => console.log(`同一 WiFi：${url}`));
-    console.log("其他电脑或手机连上同一个 WiFi，浏览器输入上面的地址即可。");
-  } else {
-    console.log("没有发现局域网网卡。请确认这台电脑已连上 WiFi，再重新运行。");
+    console.log("其他电脑不要输入 127.0.0.1。家里玩请用 192.168. 开头的地址。");
+  } else if (!pub) {
+    console.log("没有发现家用 WiFi 地址。云端电脑请用任意电脑地址，或在家里再运行本脚本。");
   }
   console.log("按 Ctrl+C 停止。");
   console.log("");
