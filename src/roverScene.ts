@@ -71,38 +71,45 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
   renderer.setSize(window.innerWidth, window.innerHeight, false)
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.2
+  renderer.toneMappingExposure = 1.05
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x9c462c)
-  scene.fog = new THREE.FogExp2(0xb4603c, 0.016)
+  scene.background = new THREE.Color(0x6d3e32)
+  scene.fog = new THREE.FogExp2(0x9c6550, 0.009)
 
-  const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.05, 350)
+  const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.05, 420)
   camera.rotation.order = 'YXZ'
 
   const rover = new THREE.Group()
-  rover.position.set(0, terrainHeight(0, 0) + 1.48, 12)
+  rover.position.set(0, terrainHeight(0, 12) + 1.62, 12)
   rover.add(camera)
   scene.add(rover)
 
-  camera.position.set(0, 0.16, 0)
+  camera.position.set(0, 0.08, 0)
 
-  const sun = new THREE.DirectionalLight(0xffd5af, 3.4)
-  sun.position.set(-35, 48, -22)
+  const sun = new THREE.DirectionalLight(0xffdfc4, 3.1)
+  sun.position.set(-42, 58, -28)
   sun.castShadow = true
   sun.shadow.mapSize.set(1024, 1024)
-  sun.shadow.camera.left = -45
-  sun.shadow.camera.right = 45
-  sun.shadow.camera.top = 45
-  sun.shadow.camera.bottom = -45
+  sun.shadow.camera.left = -55
+  sun.shadow.camera.right = 55
+  sun.shadow.camera.top = 55
+  sun.shadow.camera.bottom = -55
+  sun.shadow.bias = -0.0008
   scene.add(sun)
 
-  scene.add(new THREE.HemisphereLight(0xf8ae80, 0x36160d, 1.45))
+  scene.add(new THREE.HemisphereLight(0xd99a7b, 0x29120d, 1.05))
+
+  const sky = createMartianSky()
+  scene.add(sky)
 
   const terrain = createTerrain()
   scene.add(terrain)
+
+  const ridges = createDistantRidges()
+  scene.add(ridges)
 
   const rockField = createRockField()
   scene.add(rockField)
@@ -285,21 +292,61 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
     heading += steerInput * dt * 0.9 * steerScale * (velocity < -0.05 ? -1 : 1)
     rover.rotation.y = heading
 
-    const previousY = rover.position.y
+    const previousGround = rover.position.y - 1.62
     rover.position.x -= Math.sin(heading) * velocity * dt
     rover.position.z -= Math.cos(heading) * velocity * dt
-    rover.position.x = THREE.MathUtils.clamp(rover.position.x, -94, 94)
-    rover.position.z = THREE.MathUtils.clamp(rover.position.z, -94, 94)
+    rover.position.x = THREE.MathUtils.clamp(rover.position.x, -108, 108)
+    rover.position.z = THREE.MathUtils.clamp(rover.position.z, -108, 108)
 
     const ground = terrainHeight(rover.position.x, rover.position.z)
-    rover.position.y = THREE.MathUtils.damp(rover.position.y, ground + 1.48, 8, dt)
-    camera.rotation.x = cameraPitch + Math.sin(performance.now() * 0.012) * Math.abs(velocity) * 0.0012
+    rover.position.y = THREE.MathUtils.damp(rover.position.y, ground + 1.62, 8, dt)
+
+    // Follow the actual terrain normal so ridges and crater rims are felt from
+    // the mast camera rather than appearing as a flat floor beneath it.
+    const sampleDistance = 1.15
+    const forwardX = -Math.sin(heading)
+    const forwardZ = -Math.cos(heading)
+    const rightX = Math.cos(heading)
+    const rightZ = -Math.sin(heading)
+    const forwardHeight = terrainHeight(
+      rover.position.x + forwardX * sampleDistance,
+      rover.position.z + forwardZ * sampleDistance,
+    )
+    const rearHeight = terrainHeight(
+      rover.position.x - forwardX * sampleDistance,
+      rover.position.z - forwardZ * sampleDistance,
+    )
+    const rightHeight = terrainHeight(
+      rover.position.x + rightX * sampleDistance,
+      rover.position.z + rightZ * sampleDistance,
+    )
+    const leftHeight = terrainHeight(
+      rover.position.x - rightX * sampleDistance,
+      rover.position.z - rightZ * sampleDistance,
+    )
+    const terrainPitch = Math.atan2(rearHeight - forwardHeight, sampleDistance * 2)
+    const terrainRoll = Math.atan2(leftHeight - rightHeight, sampleDistance * 2)
+    rover.rotation.x = THREE.MathUtils.damp(rover.rotation.x, terrainPitch, 5.5, dt)
+    rover.rotation.z = THREE.MathUtils.damp(rover.rotation.z, terrainRoll, 5.5, dt)
+
+    const roughnessJolt =
+      (fractalNoise(rover.position.x * 0.7, rover.position.z * 0.7, 2) - 0.5) *
+      Math.min(1, Math.abs(velocity) / 3)
+    camera.rotation.x =
+      cameraPitch +
+      Math.sin(performance.now() * 0.012) * Math.abs(velocity) * 0.001 +
+      roughnessJolt * 0.007
 
     telemetry.x = rover.position.x
     telemetry.z = rover.position.z
     telemetry.heading = ((THREE.MathUtils.radToDeg(-heading) % 360) + 360) % 360
     telemetry.speed = Math.abs(velocity) * 3.6
-    telemetry.slope = THREE.MathUtils.clamp(((rover.position.y - previousY) / Math.max(dt, 0.001)) * 3.2, -18, 18)
+    telemetry.slope = THREE.MathUtils.clamp(
+      THREE.MathUtils.radToDeg(terrainPitch) +
+        ((ground - previousGround) / Math.max(dt, 0.001)) * 0.15,
+      -28,
+      28,
+    )
     telemetry.distance += Math.abs(velocity) * dt
     telemetry.battery = THREE.MathUtils.clamp(
       telemetry.battery - Math.abs(velocity) * dt * 0.008 - (lightsOn ? dt * 0.006 : 0),
@@ -341,9 +388,15 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
     const dustLevel = state.dust
     const daylight = Math.max(0.12, Math.cos(((state.solHour - 12) / 12) * Math.PI) * 0.5 + 0.5)
     sun.intensity = 1.3 + daylight * 3.3
+    sky.material.uniforms.daylight.value = daylight
+    sky.material.uniforms.dust.value = dustLevel
     scene.fog = new THREE.FogExp2(
-      new THREE.Color().setRGB(0.48 + dustLevel * 0.24, 0.2 + dustLevel * 0.13, 0.1).getHex(),
-      0.01 + dustLevel * 0.032,
+      new THREE.Color().setRGB(
+        0.47 + dustLevel * 0.18,
+        0.29 + dustLevel * 0.12,
+        0.23 + dustLevel * 0.07,
+      ).getHex(),
+      0.0065 + dustLevel * 0.027,
     )
     dust.update(dt, dustLevel, rover.position)
     cockpit.animate(dt, velocity, telemetry.armState === 'tracking')
@@ -358,9 +411,10 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
   }
 
   const resetPosition = () => {
-    rover.position.set(0, terrainHeight(0, 12) + 1.48, 12)
+    rover.position.set(0, terrainHeight(0, 12) + 1.62, 12)
     velocity = 0
     heading = 0
+    rover.rotation.set(0, 0, 0)
   }
 
   const dispose = () => {
@@ -373,9 +427,16 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
     canvas.removeEventListener('pointercancel', onPointerUp)
     renderer.dispose()
     terrain.geometry.dispose()
-    ;(terrain.material as THREE.Material).dispose()
+    const terrainMaterial = terrain.material as THREE.MeshStandardMaterial
+    terrainMaterial.map?.dispose()
+    terrainMaterial.bumpMap?.dispose()
+    terrainMaterial.dispose()
     rockField.geometry.dispose()
     ;(rockField.material as THREE.Material).dispose()
+    ridges.geometry.dispose()
+    ;(ridges.material as THREE.Material).dispose()
+    sky.geometry.dispose()
+    sky.material.dispose()
     dust.dispose()
     cockpit.dispose()
     samples.forEach((sample) => {
@@ -405,32 +466,186 @@ export function createRoverScene(canvas: HTMLCanvasElement): RoverScene {
 }
 
 function createTerrain(): THREE.Mesh {
-  const geometry = new THREE.PlaneGeometry(220, 220, 150, 150)
+  const geometry = new THREE.PlaneGeometry(250, 250, 190, 190)
   geometry.rotateX(-Math.PI / 2)
   const position = geometry.attributes.position as THREE.BufferAttribute
+  const colors = new Float32Array(position.count * 3)
+  const lowColor = new THREE.Color(0x6b3528)
+  const midColor = new THREE.Color(0x9b5138)
+  const highColor = new THREE.Color(0xb66b4b)
+  const tempColor = new THREE.Color()
+
   for (let i = 0; i < position.count; i++) {
-    position.setY(i, terrainHeight(position.getX(i), position.getZ(i)))
+    const x = position.getX(i)
+    const z = position.getZ(i)
+    const height = terrainHeight(x, z)
+    position.setY(i, height)
+
+    const dx = terrainHeight(x + 0.65, z) - terrainHeight(x - 0.65, z)
+    const dz = terrainHeight(x, z + 0.65) - terrainHeight(x, z - 0.65)
+    const slope = Math.min(1, Math.hypot(dx, dz) * 0.75)
+    const heightMix = THREE.MathUtils.clamp((height + 4) / 11, 0, 1)
+    tempColor.copy(midColor).lerp(highColor, heightMix * 0.55)
+    tempColor.lerp(lowColor, slope * 0.52)
+    const dustVariation = (fractalNoise(x * 0.16, z * 0.16, 2) - 0.5) * 0.13
+    tempColor.offsetHSL(0, -0.05, dustVariation)
+    colors[i * 3] = tempColor.r
+    colors[i * 3 + 1] = tempColor.g
+    colors[i * 3 + 2] = tempColor.b
   }
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geometry.computeVertexNormals()
 
+  const textures = createSoilTextures()
   const material = new THREE.MeshStandardMaterial({
-    color: 0xa64f31,
-    roughness: 0.96,
-    metalness: 0.03,
-    vertexColors: false,
+    color: 0xb07a64,
+    map: textures.map,
+    bumpMap: textures.bump,
+    bumpScale: 0.13,
+    roughness: 0.97,
+    metalness: 0.01,
+    vertexColors: true,
   })
   const mesh = new THREE.Mesh(geometry, material)
   mesh.receiveShadow = true
   return mesh
 }
 
-function createRockField(): THREE.InstancedMesh {
-  const count = 380
-  const geometry = new THREE.DodecahedronGeometry(0.32, 0)
+function createMartianSky(): THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial> {
+  const geometry = new THREE.SphereGeometry(310, 32, 18)
+  const material = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    uniforms: {
+      daylight: { value: 0.8 },
+      dust: { value: 0.16 },
+    },
+    vertexShader: /* glsl */ `
+      varying vec3 vDirection;
+      void main() {
+        vDirection = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float daylight;
+      uniform float dust;
+      varying vec3 vDirection;
+      void main() {
+        float elevation = clamp(vDirection.y * 0.5 + 0.5, 0.0, 1.0);
+        float horizon = pow(1.0 - abs(vDirection.y), 5.0);
+        vec3 zenithNight = vec3(0.10, 0.055, 0.05);
+        vec3 zenithDay = vec3(0.34, 0.19, 0.15);
+        vec3 horizonDay = vec3(0.67, 0.39, 0.29);
+        vec3 zenith = mix(zenithNight, zenithDay, daylight);
+        vec3 color = mix(horizonDay, zenith, smoothstep(0.08, 0.82, elevation));
+        color += vec3(0.16, 0.085, 0.045) * horizon * (0.35 + dust);
+        color = mix(color, vec3(0.55, 0.33, 0.25), dust * 0.28);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+  })
+  const sky = new THREE.Mesh(geometry, material)
+  sky.position.y = -28
+  return sky
+}
+
+function createDistantRidges(): THREE.Mesh {
+  const segments = 160
+  const positions: number[] = []
+  const indices: number[] = []
+
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2
+    const radius = 116 + fractalNoise(Math.cos(angle) * 3, Math.sin(angle) * 3, 3) * 9
+    const ridgeNoise = fractalNoise(Math.cos(angle) * 7.2 + 20, Math.sin(angle) * 7.2 - 8, 4)
+    const peak = -0.5 + ridgeNoise * 13 + Math.pow(ridgeNoise, 4) * 6
+    positions.push(Math.cos(angle) * radius, -10, Math.sin(angle) * radius)
+    positions.push(Math.cos(angle) * radius, peak, Math.sin(angle) * radius)
+
+    if (i < segments) {
+      const base = i * 2
+      indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2)
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
   const material = new THREE.MeshStandardMaterial({
-    color: 0x71351f,
+    color: 0x65392d,
     roughness: 1,
-    metalness: 0.02,
+    metalness: 0,
+    side: THREE.DoubleSide,
+    fog: true,
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.receiveShadow = true
+  return mesh
+}
+
+function createSoilTextures(): { map: THREE.CanvasTexture; bump: THREE.CanvasTexture } {
+  const size = 512
+  const colorCanvas = document.createElement('canvas')
+  const bumpCanvas = document.createElement('canvas')
+  colorCanvas.width = colorCanvas.height = size
+  bumpCanvas.width = bumpCanvas.height = size
+  const colorContext = colorCanvas.getContext('2d')!
+  const bumpContext = bumpCanvas.getContext('2d')!
+  const colorImage = colorContext.createImageData(size, size)
+  const bumpImage = bumpContext.createImageData(size, size)
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const broad = fractalNoise(x * 0.026, y * 0.026, 4)
+      const grain = fractalNoise(x * 0.15 + 40, y * 0.15 - 20, 2)
+      const speck = seeded(x * 91.7 + y * 17.3)
+      const value = THREE.MathUtils.clamp(broad * 0.67 + grain * 0.22 + speck * 0.11, 0, 1)
+      const darkPebble = speck > 0.992 ? -42 : 0
+      const index = (y * size + x) * 4
+      colorImage.data[index] = 114 + value * 52 + darkPebble
+      colorImage.data[index + 1] = 59 + value * 34 + darkPebble * 0.55
+      colorImage.data[index + 2] = 42 + value * 27 + darkPebble * 0.45
+      colorImage.data[index + 3] = 255
+      const bumpValue = THREE.MathUtils.clamp(value * 205 + (speck > 0.992 ? 48 : 0), 0, 255)
+      bumpImage.data[index] = bumpValue
+      bumpImage.data[index + 1] = bumpValue
+      bumpImage.data[index + 2] = bumpValue
+      bumpImage.data[index + 3] = 255
+    }
+  }
+
+  colorContext.putImageData(colorImage, 0, 0)
+  bumpContext.putImageData(bumpImage, 0, 0)
+  const map = new THREE.CanvasTexture(colorCanvas)
+  map.colorSpace = THREE.SRGBColorSpace
+  map.wrapS = map.wrapT = THREE.RepeatWrapping
+  map.repeat.set(28, 28)
+  map.anisotropy = 8
+  const bump = new THREE.CanvasTexture(bumpCanvas)
+  bump.wrapS = bump.wrapT = THREE.RepeatWrapping
+  bump.repeat.set(28, 28)
+  return { map, bump }
+}
+
+function createRockField(): THREE.InstancedMesh {
+  const count = 560
+  const geometry = new THREE.IcosahedronGeometry(0.32, 1)
+  const rockPosition = geometry.attributes.position as THREE.BufferAttribute
+  for (let i = 0; i < rockPosition.count; i++) {
+    const x = rockPosition.getX(i)
+    const y = rockPosition.getY(i)
+    const z = rockPosition.getZ(i)
+    const variation = 0.78 + seeded(i * 3.41) * 0.42
+    rockPosition.setXYZ(i, x * variation, y * (0.72 + seeded(i * 7.2) * 0.32), z * variation)
+  }
+  geometry.computeVertexNormals()
+  const material = new THREE.MeshStandardMaterial({
+    color: 0x57342b,
+    roughness: 0.95,
+    metalness: 0.015,
   })
   const mesh = new THREE.InstancedMesh(geometry, material, count)
   mesh.castShadow = true
@@ -440,14 +655,18 @@ function createRockField(): THREE.InstancedMesh {
   const scale = new THREE.Vector3()
 
   for (let i = 0; i < count; i++) {
-    const x = seeded(i * 8.17) * 190 - 95
-    const z = seeded(i * 21.31 + 4) * 190 - 95
-    const size = 0.18 + seeded(i * 12.4) ** 3 * 1.8
+    const x = seeded(i * 8.17) * 224 - 112
+    const z = seeded(i * 21.31 + 4) * 224 - 112
+    const size = 0.07 + seeded(i * 12.4) ** 4 * 2.4
     quaternion.setFromEuler(
       new THREE.Euler(seeded(i) * Math.PI, seeded(i + 9) * Math.PI, seeded(i + 3) * Math.PI),
     )
-    scale.set(size * (0.7 + seeded(i + 18) * 0.7), size, size * (0.7 + seeded(i + 31) * 0.7))
-    matrix.compose(new THREE.Vector3(x, terrainHeight(x, z) + size * 0.35, z), quaternion, scale)
+    scale.set(
+      size * (0.62 + seeded(i + 18) * 0.65),
+      size * (0.55 + seeded(i + 11) * 0.7),
+      size * (0.68 + seeded(i + 31) * 0.62),
+    )
+    matrix.compose(new THREE.Vector3(x, terrainHeight(x, z) + size * 0.24, z), quaternion, scale)
     mesh.setMatrixAt(i, matrix)
   }
   mesh.instanceMatrix.needsUpdate = true
@@ -485,10 +704,11 @@ function createSamples(scene: THREE.Scene): SampleVisual[] {
     const core = new THREE.Mesh(
       new THREE.IcosahedronGeometry(0.22 + (index % 3) * 0.04, 1),
       new THREE.MeshStandardMaterial({
-        color: type.color,
+        color: new THREE.Color(type.color).lerp(new THREE.Color(0x5d3a30), 0.48),
         emissive: type.color,
-        emissiveIntensity: 0.18,
-        roughness: 0.7,
+        emissiveIntensity: 0.035,
+        roughness: 0.91,
+        metalness: 0.025,
       }),
     )
     core.castShadow = true
@@ -541,8 +761,8 @@ function createTargetReticle(): THREE.Group {
 
 function createCockpit() {
   const group = new THREE.Group()
-  const dark = new THREE.MeshStandardMaterial({ color: 0x161515, roughness: 0.48, metalness: 0.7 })
-  const metal = new THREE.MeshStandardMaterial({ color: 0x65574d, roughness: 0.34, metalness: 0.78 })
+  const dark = new THREE.MeshStandardMaterial({ color: 0x111313, roughness: 0.54, metalness: 0.62 })
+  const metal = new THREE.MeshStandardMaterial({ color: 0x4d4c49, roughness: 0.42, metalness: 0.72 })
   const orange = new THREE.MeshStandardMaterial({
     color: 0xe56f3f,
     emissive: 0x8f2e16,
@@ -552,15 +772,15 @@ function createCockpit() {
   })
 
   // Lower dashboard and windshield pillars anchor the first-person rover view.
-  const dashboard = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.22, 0.8), dark)
-  dashboard.position.set(0, -0.73, -0.58)
+  const dashboard = new THREE.Mesh(new THREE.BoxGeometry(2.65, 0.16, 0.62), dark)
+  dashboard.position.set(0, -0.77, -0.72)
   dashboard.rotation.x = -0.08
   group.add(dashboard)
 
-  for (const x of [-1.16, 1.16]) {
-    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 2.2, 0.1), metal)
-    pillar.position.set(x, 0, -1.05)
-    pillar.rotation.z = x > 0 ? -0.12 : 0.12
+  for (const x of [-1.34, 1.34]) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.055, 2.05, 0.075), metal)
+    pillar.position.set(x, 0.02, -1.22)
+    pillar.rotation.z = x > 0 ? -0.1 : 0.1
     group.add(pillar)
   }
 
@@ -569,6 +789,7 @@ function createCockpit() {
   // visible through the lower windshield during collection.
   armRoot.position.set(0.9, -0.38, -1.18)
   armRoot.rotation.set(-0.18, -0.08, 0.12)
+  armRoot.scale.setScalar(0.7)
   group.add(armRoot)
 
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), orange)
@@ -682,12 +903,82 @@ function createSurfaceDust() {
 }
 
 function terrainHeight(x: number, z: number): number {
-  return (
-    Math.sin(x * 0.055) * 0.55 +
-    Math.cos(z * 0.043) * 0.48 +
-    Math.sin((x + z) * 0.023) * 0.9 +
-    Math.sin(x * 0.19) * Math.cos(z * 0.17) * 0.16
+  const macro = (fractalNoise(x * 0.013, z * 0.013, 5) - 0.5) * 9.5
+  const rolling = (fractalNoise(x * 0.037 + 18, z * 0.037 - 11, 4) - 0.5) * 3.2
+  const ridgeNoise = fractalNoise(x * 0.025 - 30, z * 0.025 + 14, 3)
+  const ridges = Math.pow(1 - Math.abs(ridgeNoise * 2 - 1), 3) * 2.25
+  const surface = (fractalNoise(x * 0.14 + 7, z * 0.14 + 27, 3) - 0.5) * 0.58
+
+  const craters =
+    craterProfile(x, z, -27, -9, 15, 4.2) +
+    craterProfile(x, z, 26, -41, 10, 2.8) +
+    craterProfile(x, z, 57, 27, 19, 5.1) +
+    craterProfile(x, z, -61, -64, 12, 3.4) +
+    craterProfile(x, z, -48, 50, 8, 2.1)
+
+  return macro + rolling + ridges + surface + craters
+}
+
+function craterProfile(
+  x: number,
+  z: number,
+  centerX: number,
+  centerZ: number,
+  radius: number,
+  depth: number,
+): number {
+  const distance = Math.hypot(x - centerX, z - centerZ)
+  const normalized = distance / radius
+  const bowl =
+    normalized < 1 ? -depth * Math.pow(1 - normalized * normalized, 2) : 0
+  const rim = depth * 0.42 * Math.exp(-Math.pow((normalized - 1.03) / 0.13, 2))
+  const ejecta =
+    normalized > 1 && normalized < 1.9
+      ? (fractalNoise(x * 0.23 + centerX, z * 0.23 + centerZ, 2) - 0.5) *
+        depth *
+        0.22 *
+        (1.9 - normalized)
+      : 0
+  return bowl + rim + ejecta
+}
+
+function fractalNoise(x: number, y: number, octaves: number): number {
+  let value = 0
+  let amplitude = 0.5
+  let frequency = 1
+  let normalization = 0
+  for (let octave = 0; octave < octaves; octave++) {
+    value += valueNoise(x * frequency, y * frequency) * amplitude
+    normalization += amplitude
+    amplitude *= 0.5
+    frequency *= 2.03
+  }
+  return value / normalization
+}
+
+function valueNoise(x: number, y: number): number {
+  const x0 = Math.floor(x)
+  const y0 = Math.floor(y)
+  const tx = smoothstep(x - x0)
+  const ty = smoothstep(y - y0)
+  const a = hash2(x0, y0)
+  const b = hash2(x0 + 1, y0)
+  const c = hash2(x0, y0 + 1)
+  const d = hash2(x0 + 1, y0 + 1)
+  return THREE.MathUtils.lerp(
+    THREE.MathUtils.lerp(a, b, tx),
+    THREE.MathUtils.lerp(c, d, tx),
+    ty,
   )
+}
+
+function hash2(x: number, y: number): number {
+  const value = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123
+  return value - Math.floor(value)
+}
+
+function smoothstep(value: number): number {
+  return value * value * (3 - 2 * value)
 }
 
 function findNearestSample(
