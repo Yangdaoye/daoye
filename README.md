@@ -12,7 +12,7 @@
 
 **现在任意电脑打开：**
 
-https://joins-dennis-specified-adventure.trycloudflare.com/
+https://enhancement-written-allow-impressive.trycloudflare.com/
 
 这个临时链接只在本次运行期间有效。
 
