@@ -1,0 +1,28 @@
+{
+  "report": {
+    "node": { "ok": true, "detail": "v22.14.0" },
+    "sandbox": { "ok": true },
+    "workspace": { "ok": true, "detail": "daoye" },
+    "bridge": { "ok": true, "detail": "端口 8787" },
+    "mcp": { "ok": true, "detail": "未授权请求返回 401" },
+    "oauth": { "ok": true },
+    "tunnel": { "ok": true, "detail": "https://new.trycloudflare.com" }
+  },
+  "repairs": ["已重新建立安全连接（地址已更换）"],
+  "chatgptRepair": {
+    "needed": true,
+    "reason": "address_reclaimed",
+    "connectorAction": "update",
+    "connectorName": "Codex with ChatGPT · daoye",
+    "userMessage": "安全连接地址已更换，需要删除并重新添加「Codex with ChatGPT · daoye」。",
+    "mcpUrl": "https://new.trycloudflare.com/mcp",
+    "previousMcpUrl": "https://old.trycloudflare.com/mcp",
+    "pairingCode": "SHOULD-NOT-LEAK",
+    "pages": {
+      "developerMode": "https://chatgpt.com/#settings/Security",
+      "plugins": "https://chatgpt.com/plugins",
+      "createConnector": "https://chatgpt.com/plugins#settings/Connectors?create-connector=true&redirectAfter=%2Fplugins"
+    }
+  },
+  "namedRepair": { "needed": false }
+}

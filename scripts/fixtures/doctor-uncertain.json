@@ -1,0 +1,23 @@
+{
+  "report": {
+    "node": { "ok": true, "detail": "v22.14.0" },
+    "sandbox": { "ok": true },
+    "workspace": { "ok": true, "detail": "daoye" },
+    "bridge": { "ok": false, "detail": "状态无法确认（pid-file race），未自动修复" },
+    "tunnel": { "ok": false, "detail": "Bridge 状态无法确认，未执行连接器修复" }
+  },
+  "repairs": [],
+  "chatgptRepair": {
+    "needed": false,
+    "connectorAction": "none",
+    "connectorName": "Codex with ChatGPT",
+    "mcpUrl": null,
+    "previousMcpUrl": "https://old.trycloudflare.com/mcp",
+    "pages": {
+      "developerMode": "https://chatgpt.com/#settings/Security",
+      "plugins": "https://chatgpt.com/plugins",
+      "createConnector": "https://chatgpt.com/plugins#settings/Connectors?create-connector=true&redirectAfter=%2Fplugins"
+    }
+  },
+  "namedRepair": { "needed": false }
+}
