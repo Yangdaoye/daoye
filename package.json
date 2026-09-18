@@ -1,0 +1,16 @@
+{
+  "name": "codex-chatgpt-connect",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Companion Codex skill that keeps XiaoDuoYa/codex-with-chatgpt Quick Tunnel connections alive.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test scripts/test/*.test.mjs",
+    "ensure": "node scripts/ensure-connected.mjs --json",
+    "install-skill": "node scripts/install.mjs"
+  }
+}

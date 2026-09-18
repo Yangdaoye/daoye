@@ -1,0 +1,25 @@
+{
+  "report": {
+    "node": { "ok": true, "detail": "v22.14.0" },
+    "sandbox": { "ok": true },
+    "workspace": { "ok": true, "detail": "daoye" },
+    "bridge": { "ok": true, "detail": "端口 8787" },
+    "mcp": { "ok": true, "detail": "未授权请求返回 401" },
+    "oauth": { "ok": true },
+    "tunnel": { "ok": true, "detail": "未启用（本地模式）" }
+  },
+  "repairs": [],
+  "chatgptRepair": {
+    "needed": false,
+    "connectorAction": "none",
+    "connectorName": "Codex with ChatGPT",
+    "mcpUrl": null,
+    "previousMcpUrl": null,
+    "pages": {
+      "developerMode": "https://chatgpt.com/#settings/Security",
+      "plugins": "https://chatgpt.com/plugins",
+      "createConnector": "https://chatgpt.com/plugins#settings/Connectors?create-connector=true&redirectAfter=%2Fplugins"
+    }
+  },
+  "namedRepair": { "needed": false }
+}
